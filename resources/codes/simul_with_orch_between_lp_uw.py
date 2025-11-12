@@ -95,7 +95,7 @@ async def issue_final_approval() -> str:
 
 
 # ============== ORCHESTRATOR AGENT ==============
-
+# TODO: maybe remove in the future. add more functions. avoid using just string.
 orchestrator_agent = AssistantAgent(
     "orchestrator_agent",
     model_client=model_client,
@@ -244,6 +244,9 @@ team = Swarm(
 
 # ============== TASK DEFINITIONS ==============
 
+# TODO: creating object like json not string -> good representation
+# TODO: more function call -> to see where we can apply access control
+# TODO: multiple documents. agent_1 might have access to doc_1, not to doc_2
 task_standard_loan = """
 New loan file received:
 - Borrower: John Doe
