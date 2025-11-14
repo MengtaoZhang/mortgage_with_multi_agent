@@ -123,64 +123,37 @@ loan_processor_agent = AssistantAgent(
     "loan_processor_agent",
     model_client=model_client,
     handoffs=["orchestrator_agent"],
-    system_message="""You are a Loan Processor.
+    system_message="""You are a Loan Processor with AUTONOMOUS TASK MANAGEMENT.
 
-    When you receive a new loan file, you MUST perform these steps IN ORDER and DOCUMENT each step:
+    CONCURRENT TASK STRATEGY:
+    When you receive a new loan file, you should IMMEDIATELY launch ALL independent tasks in parallel:
 
-    STEP 1: ACKNOWLEDGE RECEIPT
-    - State that you received the loan file
-    - List the borrower name and loan amount
+    PHASE 1 - Launch Concurrently (no dependencies):
+    - order_credit_report()
+    - order_appraisal()
+    - order_flood_certification()
+    - verify_employment()
+    - verify_loan_documents()
 
-    STEP 2: VERIFY DOCUMENTS
-    - Check that all required documents are present:
-      * Application (URLA) ✓/✗
-      * Pay stubs ✓/✗
-      * W-2/1099 ✓/✗
-      * Bank statements ✓/✗
-      * Tax returns ✓/✗
-      * Appraisal report ✓/✗
-      * Inspection report (if applicable) ✓/✗
-    - If ANY documents are missing, DO NOT PROCEED. Request them and use TERMINATE.
+    PHASE 2 - After Phase 1 completes:
+    - calculate_loan_ratios() (needs credit report)
 
-    STEP 3: CALCULATE RATIOS
-    - Calculate LTV ratio: (Loan Amount / Appraised Value) × 100
-      * Show your calculation
-      * State the result
-    - Calculate DTI ratio: (Monthly Debts / Monthly Income) × 100
-      * Show your calculation
-      * State the result
+    PHASE 3 - After Phase 2 completes:
+    - submit_to_underwriting() (needs ratios)
 
-    STEP 4: RISK ASSESSMENT
-    - Review the calculated ratios and credit score
-    - Note any potential concerns:
-      * DTI > 43% (flag for underwriter)
-      * LTV > 80% (PMI likely required)
-      * Credit score < 620 (may need explanation)
-      * Reserves < 2 months (may need additional reserves)
-    - Document your preliminary assessment
+    YOUR WORKFLOW:
+    1. Analyze what tasks need to be done
+    2. Identify tasks with NO dependencies → Launch ALL in parallel
+    3. Wait for results
+    4. Identify next tasks that are now unblocked → Launch in parallel
+    5. Repeat until file ready to submit
 
-    STEP 5: SUBMIT TO UNDERWRITING
-    - Only AFTER completing steps 1-4, call submit_to_underwriting tool
-    - Include all verified metrics
-    - Add file notes summarizing your findings
+    DO NOT wait for one task to finish before starting another if they can run concurrently.
 
-    STEP 6: HANDOFF
-    - After calling the tool, handoff to orchestrator_agent
-    - DO NOT handoff before calling submit_to_underwriting
+    Example: When you receive a file, immediately say:
+    "I'm launching 4 concurrent tasks: ordering credit report, ordering appraisal, ordering flood cert, and verifying employment. These can all run in parallel."
 
-    IMPORTANT: Show your work! Document each step clearly so the workflow is transparent.
-
-    When you receive conditional approval from underwriter:
-    - List each condition received
-    - Acknowledge what documents are needed
-    - For this simulation, assume conditions can be cleared immediately
-    - Call resubmit_with_conditions_cleared with a dictionary of cleared items
-    - Handoff to orchestrator_agent
-
-    Use TERMINATE only when:
-    - Final approval (CTC) is received
-    - Borrower cannot provide required documents
-    - Loan is declined
+    Then call all 4 tools without waiting for responses in between.
     """,
     reflect_on_tool_use=True,
     tools=[submit_to_underwriting, resubmit_with_conditions_cleared]
