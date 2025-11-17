@@ -1,0 +1,610 @@
+{
+  "loan_info": {
+    "loan_number": "LN-091127",
+    "loan_amount": "320000",
+    "purchase_price": "400000",
+    "down_payment": "80000",
+    "interest_rate": "6.5",
+    "loan_term_months": 360,
+    "loan_type": "conventional",
+    "loan_purpose": "purchase",
+    "lender_name": "Premium Lender",
+    "loan_officer": "Jane Doe",
+    "application_date": "2025-11-16",
+    "lock_expiration_date": null
+  },
+  "status": "underwriting_initial_review",
+  "borrowers": [
+    {
+      "borrower_id": "B001",
+      "first_name": "John",
+      "middle_name": null,
+      "last_name": "Smith",
+      "ssn": "123-45-6789",
+      "date_of_birth": "1985-05-15",
+      "email": "john.smith@email.com",
+      "phone": "555-0100",
+      "current_address": {
+        "street": "123 Main Street",
+        "city": "Springfield",
+        "state": "IL",
+        "zip_code": "62701",
+        "country": "USA"
+      },
+      "previous_addresses": [],
+      "employment": [
+        {
+          "employer_name": "Tech Corp",
+          "employer_phone": "555-0200",
+          "employment_type": "w2_salary",
+          "job_title": "Software Engineer",
+          "start_date": "2019-01-01",
+          "end_date": null,
+          "is_current": true,
+          "monthly_income": "8500",
+          "years_in_profession": 5.0,
+          "verified": true,
+          "verification_date": "2025-11-16T18:48:07.126831",
+          "verification_method": "VOE - Employer Direct Contact"
+        }
+      ],
+      "income": [
+        {
+          "income_type": "base_salary",
+          "monthly_amount": "8500",
+          "is_stable": true,
+          "documentation": [],
+          "notes": null
+        }
+      ],
+      "assets": [
+        {
+          "asset_type": "checking",
+          "institution_name": "First National Bank",
+          "account_number": "****1234",
+          "balance": "25000",
+          "statement_date": "2025-11-11",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        },
+        {
+          "asset_type": "savings",
+          "institution_name": "First National Bank",
+          "account_number": "****5678",
+          "balance": "50000",
+          "statement_date": "2025-11-11",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        },
+        {
+          "asset_type": "401k",
+          "institution_name": "Fidelity",
+          "account_number": "****9012",
+          "balance": "120000",
+          "statement_date": "2025-10-17",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        }
+      ],
+      "credit_report": {
+        "report_id": "CR-980134",
+        "report_date": "2025-11-16T18:48:03.497585",
+        "bureau": "TriMerge",
+        "credit_score": 648,
+        "tradelines": [
+          {
+            "account_type": "personal_loan",
+            "creditor_name": "Personal_Loan Creditor 1",
+            "account_number": "****6135",
+            "balance": "47394",
+            "monthly_payment": "297",
+            "payment_status": "current",
+            "opened_date": "2021-01-11",
+            "closed_date": null
+          },
+          {
+            "account_type": "personal_loan",
+            "creditor_name": "Personal_Loan Creditor 2",
+            "account_number": "****8329",
+            "balance": "44258",
+            "monthly_payment": "1420",
+            "payment_status": "current",
+            "opened_date": "2017-12-17",
+            "closed_date": null
+          },
+          {
+            "account_type": "auto",
+            "creditor_name": "Auto Creditor 3",
+            "account_number": "****3318",
+            "balance": "28673",
+            "monthly_payment": "490",
+            "payment_status": "current",
+            "opened_date": "2017-08-21",
+            "closed_date": null
+          },
+          {
+            "account_type": "credit_card",
+            "creditor_name": "Credit_Card Creditor 4",
+            "account_number": "****6604",
+            "balance": "23493",
+            "monthly_payment": "857",
+            "payment_status": "current",
+            "opened_date": "2017-09-17",
+            "closed_date": null
+          },
+          {
+            "account_type": "mortgage",
+            "creditor_name": "Mortgage Creditor 5",
+            "account_number": "****2421",
+            "balance": "16154",
+            "monthly_payment": "987",
+            "payment_status": "current",
+            "opened_date": "2018-11-03",
+            "closed_date": "2025-02-11"
+          },
+          {
+            "account_type": "mortgage",
+            "creditor_name": "Mortgage Creditor 6",
+            "account_number": "****8738",
+            "balance": "37046",
+            "monthly_payment": "151",
+            "payment_status": "current",
+            "opened_date": "2024-01-10",
+            "closed_date": null
+          },
+          {
+            "account_type": "auto",
+            "creditor_name": "Auto Creditor 7",
+            "account_number": "****1352",
+            "balance": "48824",
+            "monthly_payment": "594",
+            "payment_status": "30_days_late",
+            "opened_date": "2017-11-06",
+            "closed_date": null
+          },
+          {
+            "account_type": "auto",
+            "creditor_name": "Auto Creditor 8",
+            "account_number": "****7837",
+            "balance": "42573",
+            "monthly_payment": "1048",
+            "payment_status": "current",
+            "opened_date": "2017-07-12",
+            "closed_date": null
+          },
+          {
+            "account_type": "personal_loan",
+            "creditor_name": "Personal_Loan Creditor 9",
+            "account_number": "****6480",
+            "balance": "40984",
+            "monthly_payment": "954",
+            "payment_status": "current",
+            "opened_date": "2018-02-14",
+            "closed_date": null
+          },
+          {
+            "account_type": "auto",
+            "creditor_name": "Auto Creditor 10",
+            "account_number": "****7006",
+            "balance": "22327",
+            "monthly_payment": "185",
+            "payment_status": "current",
+            "opened_date": "2016-06-01",
+            "closed_date": "2025-06-15"
+          },
+          {
+            "account_type": "student_loan",
+            "creditor_name": "Student_Loan Creditor 11",
+            "account_number": "****9928",
+            "balance": "22563",
+            "monthly_payment": "1361",
+            "payment_status": "current",
+            "opened_date": "2023-04-11",
+            "closed_date": null
+          },
+          {
+            "account_type": "mortgage",
+            "creditor_name": "Mortgage Creditor 12",
+            "account_number": "****4338",
+            "balance": "18435",
+            "monthly_payment": "1341",
+            "payment_status": "current",
+            "opened_date": "2019-12-15",
+            "closed_date": "2025-09-14"
+          }
+        ],
+        "inquiries": [
+          {
+            "creditor_name": "Creditor 1",
+            "inquiry_date": "2025-09-04",
+            "inquiry_type": "soft",
+            "explanation_required": true,
+            "explanation": null
+          },
+          {
+            "creditor_name": "Creditor 2",
+            "inquiry_date": "2025-08-17",
+            "inquiry_type": "soft",
+            "explanation_required": true,
+            "explanation": null
+          },
+          {
+            "creditor_name": "Creditor 3",
+            "inquiry_date": "2025-07-02",
+            "inquiry_type": "hard",
+            "explanation_required": true,
+            "explanation": null
+          },
+          {
+            "creditor_name": "Creditor 4",
+            "inquiry_date": "2025-09-30",
+            "inquiry_type": "hard",
+            "explanation_required": true,
+            "explanation": null
+          },
+          {
+            "creditor_name": "Creditor 5",
+            "inquiry_date": "2025-10-20",
+            "inquiry_type": "hard",
+            "explanation_required": true,
+            "explanation": null
+          }
+        ],
+        "derogatory_items": [],
+        "public_records": [],
+        "total_monthly_debt": "7172"
+      },
+      "is_first_time_homebuyer": false,
+      "citizenship_status": "us_citizen",
+      "marital_status": "married"
+    }
+  ],
+  "co_borrowers": [],
+  "property_info": {
+    "property_address": {
+      "street": "456 Oak Avenue",
+      "city": "Springfield",
+      "state": "IL",
+      "zip_code": "62702",
+      "country": "USA"
+    },
+    "property_type": "single_family",
+    "occupancy_type": "primary_residence",
+    "year_built": 2015,
+    "square_footage": 2200,
+    "number_of_units": 1,
+    "hoa": false,
+    "hoa_fees": null,
+    "flood_zone": "C",
+    "flood_insurance_required": false
+  },
+  "appraisal": {
+    "appraisal_id": "APR-782838",
+    "ordered_date": "2025-11-16T18:48:05.365381",
+    "completed_date": null,
+    "appraiser_name": null,
+    "appraiser_license": null,
+    "appraised_value": null,
+    "as_is_value": null,
+    "condition": null,
+    "comparable_sales": [],
+    "issues": [],
+    "repairs_required": [],
+    "estimated_repair_cost": null,
+    "status": "ordered"
+  },
+  "title_report": null,
+  "financial_metrics": {
+    "ltv_ratio": "80.0",
+    "cltv_ratio": null,
+    "dti_ratio": "115.3055057008633655296168876",
+    "front_end_ratio": "30.92903511262807141196982874",
+    "monthly_housing_payment": "2628.967984573386070017435443",
+    "total_monthly_debt": "9800.967984573386070017435443",
+    "monthly_income": "8500",
+    "reserves_months": "28.52830481013657997466746123",
+    "total_assets": "195000",
+    "cash_to_close": "92000.00",
+    "pmi_required": false,
+    "pmi_amount": null
+  },
+  "documents": [
+    {
+      "document_id": "DOC-41CC3E3E",
+      "document_type": "urla",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-83572425",
+      "document_type": "paystub",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-C1A710AA",
+      "document_type": "w2",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-5583A3D8",
+      "document_type": "bank_statement",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-B5D3DE59",
+      "document_type": "purchase_agreement",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-46238ADA",
+      "document_type": "credit_report",
+      "status": "approved",
+      "file_name": null,
+      "file_path": null,
+      "received_date": "2025-11-16T18:48:03.498882",
+      "reviewed_date": "2025-11-16T18:48:03.498886",
+      "reviewed_by": "loan_processor",
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {
+        "credit_score": 648,
+        "bureau": "TriMerge",
+        "report_id": "CR-980134"
+      }
+    },
+    {
+      "document_id": "DOC-A875D65D",
+      "document_type": "appraisal",
+      "status": "requested",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {
+        "order_id": "APR-782838",
+        "estimated_completion": "2025-11-23"
+      }
+    },
+    {
+      "document_id": "DOC-813A8BC7",
+      "document_type": "flood_certification",
+      "status": "approved",
+      "file_name": null,
+      "file_path": null,
+      "received_date": "2025-11-16T18:48:05.870051",
+      "reviewed_date": "2025-11-16T18:48:05.870053",
+      "reviewed_by": "loan_processor",
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {
+        "flood_zone": "C",
+        "insurance_required": false,
+        "future_risk_score": 1
+      }
+    },
+    {
+      "document_id": "DOC-85D9FA79",
+      "document_type": "employment_verification",
+      "status": "approved",
+      "file_name": null,
+      "file_path": null,
+      "received_date": "2025-11-16T18:48:07.126881",
+      "reviewed_date": "2025-11-16T18:48:07.126882",
+      "reviewed_by": "loan_processor",
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {
+        "employer": "Tech Corp",
+        "verified_income": 8096.56,
+        "hire_date": "2021-09-26"
+      }
+    }
+  ],
+  "underwriting_decisions": [
+    {
+      "decision_id": "DEC-8A39861F",
+      "decision_date": "2025-11-16T18:48:20.784139",
+      "underwriter_name": "automated_underwriting_system",
+      "decision_type": "automated_findings",
+      "decision_reason": "DU Recommendation: refer",
+      "conditions": [],
+      "notes": null,
+      "automated_findings": {
+        "recommendation": "refer",
+        "findings": [
+          "DTI ratio 115.3055057008633655296168876% exceeds guidelines",
+          "Credit score 648 below preferred threshold"
+        ],
+        "required_documents": [
+          "VOE - Verify stable employment",
+          "LOE - Explain credit inquiries"
+        ],
+        "llpa": 0.5,
+        "reserves_required": 6
+      },
+      "manual_review_notes": null
+    }
+  ],
+  "current_conditions": [],
+  "audit_trail": [
+    {
+      "timestamp": "2025-11-16T18:48:01.846398",
+      "actor": "loan_processor",
+      "action": "status_change",
+      "details": "Missing required documents",
+      "status_before": "application_received",
+      "status_after": "documents_collecting",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:03.498941",
+      "actor": "loan_processor",
+      "action": "status_change",
+      "details": "Credit report received - Score: 648",
+      "status_before": "documents_collecting",
+      "status_after": "credit_ordered",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:05.365561",
+      "actor": "loan_processor",
+      "action": "status_change",
+      "details": "Appraisal ordered - Order ID: APR-782838",
+      "status_before": "credit_ordered",
+      "status_after": "appraisal_ordered",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:05.870084",
+      "actor": "loan_processor",
+      "action": "flood_cert_ordered",
+      "details": "Zone: C, Insurance Required: False",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:07.126902",
+      "actor": "loan_processor",
+      "action": "employment_verified",
+      "details": "Employer: Tech Corp, Income: $8096.56",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:10.207088",
+      "actor": "loan_processor",
+      "action": "financial_calculations",
+      "details": "Calculated ratios: LTV=80.00%, DTI=115.31%",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:12.691865",
+      "actor": "loan_processor",
+      "action": "status_change",
+      "details": "Complete file submitted to underwriting",
+      "status_before": "appraisal_ordered",
+      "status_after": "submitted_to_underwriting",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:20.784229",
+      "actor": "underwriter_agent",
+      "action": "status_change",
+      "details": "Automated underwriting: refer",
+      "status_before": "submitted_to_underwriting",
+      "status_after": "underwriting_initial_review",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:20.784270",
+      "actor": "underwriter_agent",
+      "action": "automated_underwriting",
+      "details": "DU Recommendation: refer",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:22.649073",
+      "actor": "underwriter_agent",
+      "action": "credit_review",
+      "details": "Credit score: 648, Issues: 2",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:22.653744",
+      "actor": "underwriter_agent",
+      "action": "income_review",
+      "details": "Total income: $8500, Employment months: 82",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-16T18:48:22.657816",
+      "actor": "underwriter_agent",
+      "action": "assets_review",
+      "details": "Liquid assets: $75000, Reserves: 28.5 months",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    }
+  ],
+  "created_date": "2025-11-16T18:47:56.878409",
+  "last_updated": "2025-11-16T18:48:22.657827",
+  "processor_name": "loan_processor_agent",
+  "underwriter_name": null,
+  "notes": null,
+  "flags": [
+    "\u26a0\ufe0f  Multiple credit inquiries - LOE required"
+  ]
+}

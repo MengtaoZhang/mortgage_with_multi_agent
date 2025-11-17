@@ -7,80 +7,100 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import Dict, List
 import uuid
+import copy  # ← ADD THIS for run_automated_underwriting
 
 from models import (
     LoanFile, LoanStatus, UnderwritingCondition, UnderwritingDecision,
     ConditionType, ConditionSeverity, DocumentType, DocumentStatus
 )
-from file_manager import LoanFileManager
+from file_manager import LoanFileManager  # ← This is where file_manager comes from
 from external_systems import (
     AutomatedUnderwritingSimulator, SystemTimeoutException,
     ExternalSystemException
 )
 
-file_manager = LoanFileManager()
-
+# Create global file_manager instance
+file_manager = LoanFileManager()  # ← This is the file_manager used in all functions
 
 async def run_automated_underwriting(loan_number: str) -> str:
-    """Run automated underwriting - CONCURRENT SAFE"""
+    """Run automated underwriting - TRUE CONCURRENT SAFE"""
 
+    # ========== PHASE 1: Load data (LOCKED) ==========
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
         if not loan_file:
             return f"❌ ERROR: Loan file {loan_number} not found"
 
-        result = []
-        result.append(f"🤖 RUNNING AUTOMATED UNDERWRITING SYSTEM")
-        result.append(f"Loan #{loan_number}")
+        # We need to pass the entire loan_file to the simulator
+        # so we'll make a deep copy to work with outside the lock
+        import copy
+        loan_file_copy = copy.deepcopy(loan_file)
+    # Lock released
+
+    # ========== PHASE 2: External API call (NO LOCK) ==========
+    result = []
+    result.append(f"🤖 RUNNING AUTOMATED UNDERWRITING SYSTEM")
+    result.append(f"Loan #{loan_number}")
+    result.append("=" * 60)
+
+    try:
+        result.append(f"📡 Submitting to Desktop Underwriter (DU)...")
+
+        # This takes 2-4 seconds but doesn't block other loans!
+        au_response = AutomatedUnderwritingSimulator.run_automated_underwriting(loan_file_copy)
+
+        result.append(f"✅ Automated underwriting complete")
+        result.append(f"Transaction ID: {au_response.transaction_id}")
+        result.append(f"System: {au_response.response_data['system']}")
+        result.append(f"Casefile ID: {au_response.response_data['casefile_id']}")
+        result.append("")
+
+        result.append(f"📊 RECOMMENDATION: {au_response.recommendation.upper()}")
         result.append("=" * 60)
 
-        try:
-            result.append(f"📡 Submitting to Desktop Underwriter (DU)...")
+        if au_response.recommendation == "approve":
+            result.append(f"✅ APPROVE/ELIGIBLE")
+            result.append(f"   Loan meets automated underwriting guidelines")
+        elif au_response.recommendation == "refer":
+            result.append(f"⚠️  REFER - Manual Underwriting Required")
+            result.append(f"   Additional review needed by underwriter")
+        elif au_response.recommendation == "caution":
+            result.append(f"🚨 CAUTION - High Risk")
+            result.append(f"   Significant compensating factors required")
+        else:
+            result.append(f"❌ INELIGIBLE")
+            result.append(f"   Does not meet automated guidelines")
 
-            au_response = AutomatedUnderwritingSimulator.run_automated_underwriting(loan_file)
+        if au_response.findings:
+            result.append(f"\n📋 FINDINGS:")
+            for finding in au_response.findings:
+                result.append(f"  - {finding}")
 
-            result.append(f"✅ Automated underwriting complete")
-            result.append(f"Transaction ID: {au_response.transaction_id}")
-            result.append(f"System: {au_response.response_data['system']}")
-            result.append(f"Casefile ID: {au_response.response_data['casefile_id']}")
-            result.append("")
+        if au_response.required_documents:
+            result.append(f"\n📄 REQUIRED DOCUMENTS:")
+            for doc in au_response.required_documents:
+                result.append(f"  - {doc}")
 
-            result.append(f"📊 RECOMMENDATION: {au_response.recommendation.upper()}")
-            result.append("=" * 60)
+        result.append(f"\n💰 PRICING:")
+        result.append(f"  Loan Level Price Adjustment: {au_response.loan_level_price_adjustment}%")
+        result.append(f"  Reserves Required: {au_response.reserves_required} months")
 
-            if au_response.recommendation == "approve":
-                result.append(f"✅ APPROVE/ELIGIBLE")
-                result.append(f"   Loan meets automated underwriting guidelines")
-            elif au_response.recommendation == "refer":
-                result.append(f"⚠️  REFER - Manual Underwriting Required")
-                result.append(f"   Additional review needed by underwriter")
-            elif au_response.recommendation == "caution":
-                result.append(f"🚨 CAUTION - High Risk")
-                result.append(f"   Significant compensating factors required")
+        # Check reserves from the copy
+        if loan_file_copy.financial_metrics.reserves_months:
+            if loan_file_copy.financial_metrics.reserves_months >= au_response.reserves_required:
+                result.append(
+                    f"  ✅ Borrower has {loan_file_copy.financial_metrics.reserves_months:.1f} months (sufficient)")
             else:
-                result.append(f"❌ INELIGIBLE")
-                result.append(f"   Does not meet automated guidelines")
+                result.append(
+                    f"  ❌ Borrower has {loan_file_copy.financial_metrics.reserves_months:.1f} months (insufficient)")
+                result.append(
+                    f"     Additional {au_response.reserves_required - loan_file_copy.financial_metrics.reserves_months:.1f} months needed")
 
-            if au_response.findings:
-                result.append(f"\n📋 FINDINGS:")
-                for finding in au_response.findings:
-                    result.append(f"  - {finding}")
-
-            if au_response.required_documents:
-                result.append(f"\n📄 REQUIRED DOCUMENTS:")
-                for doc in au_response.required_documents:
-                    result.append(f"  - {doc}")
-
-            result.append(f"\n💰 PRICING:")
-            result.append(f"  Loan Level Price Adjustment: {au_response.loan_level_price_adjustment}%")
-            result.append(f"  Reserves Required: {au_response.reserves_required} months")
-
-            if loan_file.financial_metrics.reserves_months:
-                if loan_file.financial_metrics.reserves_months >= au_response.reserves_required:
-                    result.append(f"  ✅ Borrower has {loan_file.financial_metrics.reserves_months:.1f} months (sufficient)")
-                else:
-                    result.append(f"  ❌ Borrower has {loan_file.financial_metrics.reserves_months:.1f} months (insufficient)")
-                    result.append(f"     Additional {au_response.reserves_required - loan_file.financial_metrics.reserves_months:.1f} months needed")
+        # ========== PHASE 3: Update file (LOCKED) ==========
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if not loan_file:
+                return f"❌ ERROR: Loan file {loan_number} not found"
 
             if not loan_file.underwriting_decisions:
                 loan_file.underwriting_decisions = []
@@ -116,15 +136,19 @@ async def run_automated_underwriting(loan_number: str) -> str:
             file_manager.save_loan_file(loan_file)
             result.append(f"\n✅ Automated underwriting results recorded")
 
-        except SystemTimeoutException as e:
-            result.append(f"\n⏱️  TIMEOUT: {str(e)}")
-            result.append(f"🔔 ACTION: Retry automated underwriting")
-            loan_file.add_audit_entry(
-                actor="underwriter_agent",
-                action="automated_underwriting_failed",
-                details=str(e)
-            )
-            file_manager.save_loan_file(loan_file)
+    except SystemTimeoutException as e:
+        result.append(f"\n⏱️  TIMEOUT: {str(e)}")
+        result.append(f"🔔 ACTION: Retry automated underwriting")
+
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.add_audit_entry(
+                    actor="underwriter_agent",
+                    action="automated_underwriting_failed",
+                    details=str(e)
+                )
+                file_manager.save_loan_file(loan_file)
 
     return "\n".join(result)
 
@@ -580,10 +604,17 @@ async def review_property_appraisal(loan_number: str) -> str:
 
 
 async def issue_underwriting_conditions(
-    loan_number: str,
-    conditions: List[Dict]
+        loan_number: str,
+        conditions: List[str]  # ← Simple list of descriptions
 ) -> str:
-    """Issue underwriting conditions - CONCURRENT SAFE"""
+    """
+    Issue underwriting conditions - CONCURRENT SAFE
+
+    Args:
+        loan_number: The loan number
+        conditions: List of condition descriptions
+            Example: ["VOE required for Tech Corp", "Verify bank assets", "LOE for credit inquiries"]
+    """
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -597,14 +628,27 @@ async def issue_underwriting_conditions(
 
         new_conditions = []
 
-        for cond_data in conditions:
+        for description in conditions:
+            # Auto-detect condition type from description
+            cond_type = ConditionType.OTHER  # Default
+            if "VOE" in description.upper() or "EMPLOY" in description.upper():
+                cond_type = ConditionType.VOE
+            elif "VOA" in description.upper() or "ASSET" in description.upper():
+                cond_type = ConditionType.VOA
+            elif "LOE" in description.upper() or "LETTER" in description.upper():
+                cond_type = ConditionType.LOE
+            elif "APPRAISAL" in description.upper():
+                cond_type = ConditionType.APPRAISAL
+            elif "TITLE" in description.upper():
+                cond_type = ConditionType.TITLE
+
             condition = UnderwritingCondition(
                 condition_id=f"COND-{uuid.uuid4().hex[:8].upper()}",
-                condition_type=ConditionType(cond_data['type']),
-                severity=ConditionSeverity(cond_data['severity']),
-                category=cond_data['category'],
-                description=cond_data['description'],
-                reason=cond_data['reason'],
+                condition_type=cond_type,
+                severity=ConditionSeverity.REQUIRED,  # Default to REQUIRED
+                category="underwriting",  # Default category
+                description=description,  # Use the string as-is
+                reason="Underwriter review",  # Default reason
                 due_date=(datetime.now() + timedelta(days=7)).date(),
                 created_date=datetime.now()
             )
@@ -619,7 +663,7 @@ async def issue_underwriting_conditions(
             result.append(f"  Reason: {condition.reason}")
             result.append(f"  Due Date: {condition.due_date}")
 
-        result.append(f"\n{'='*60}")
+        result.append(f"\n{'=' * 60}")
         result.append(f"Total Conditions Issued: {len(new_conditions)}")
 
         decision = UnderwritingDecision(
@@ -645,8 +689,7 @@ async def issue_underwriting_conditions(
         result.append(f"\n✅ Conditions issued and file suspended")
         result.append(f"🔄 File returned to loan processor for condition clearance")
 
-    return "\n".join(result)
-
+        return "\n".join(result)
 
 async def issue_final_approval(loan_number: str, approval_notes: str) -> str:
     """Issue Clear to Close - CONCURRENT SAFE"""

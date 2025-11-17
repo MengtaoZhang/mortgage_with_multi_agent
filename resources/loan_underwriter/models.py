@@ -3,7 +3,7 @@ Pydantic models for mortgage loan underwriting system
 """
 
 from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Any
 from datetime import datetime, date
 from enum import Enum
 from decimal import Decimal
@@ -137,7 +137,7 @@ class Document(BaseModel):
     pages: Optional[int] = None
     issues: List[str] = Field(default_factory=list)
     notes: Optional[str] = None
-    metadata: Dict[str, any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 # ============== BORROWER MODELS ==============

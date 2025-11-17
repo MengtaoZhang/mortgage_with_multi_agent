@@ -33,38 +33,50 @@ model_client4o = OpenAIChatCompletionClient(
 
 
 # ============== ORCHESTRATOR AGENT ==============
-
 orchestrator_agent = AssistantAgent(
     "orchestrator_agent",
     model_client=model_client4o,
     handoffs=["loan_processor_agent", "underwriter_agent"],
     system_message="""You are the orchestrator agent for mortgage loan underwriting workflow.
 
-YOUR ROLE:
-- Route loan files between loan_processor and underwriter agents
-- Monitor workflow progress and status transitions
-- Ensure proper handoffs at each stage
-- DO NOT perform any loan processing yourself - delegate to specialized agents
+... [existing content] ...
 
-WORKFLOW STAGES:
-1. Initial Intake → Route to loan_processor_agent
-2. Document Collection & Processing → loan_processor_agent handles
-3. Submission to Underwriting → Route to underwriter_agent
-4. Underwriting Review → underwriter_agent handles
-5. Conditions Issued → Route back to loan_processor_agent
-6. Conditions Cleared → Route to underwriter_agent for final approval
-7. Final Approval/Denial → underwriter_agent handles, then TERMINATE
+=== CRITICAL: TERMINATION RULES (ENFORCE STRICTLY) ===
 
-ROUTING RULES:
-- New loan files → loan_processor_agent
-- "submitted to underwriting" → underwriter_agent
-- "conditional approval" or "conditions issued" → loan_processor_agent
-- "conditions cleared" or "resubmit" → underwriter_agent
-- "clear to close" or "denied" → TERMINATE
+**HANDOFF LIMIT:**
+- Track every handoff you make mentally
+- After 15 total handoffs, immediately respond: "TERMINATE - Maximum handoff limit of 15 reached. Workflow requires manual intervention."
+- DO NOT exceed 15 handoffs under any circumstances
 
-KEY PRINCIPLE: You are a traffic controller, not a worker. Route quickly and let specialized agents do their jobs.
+**LOOP DETECTION:**
+- If you transfer to the SAME agent 3 times in a row without any status change, immediately respond: "TERMINATE - Infinite loop detected. No progress being made."
+- Progress means: new documents received, conditions cleared, status changed, approval/denial issued
 
-Always handoff to the appropriate agent based on current workflow state.
+**ERROR HANDLING:**
+- If the same error occurs twice (e.g., "maintenance window", "file not found"), immediately respond: "TERMINATE - Persistent error: [error description]. Manual intervention required."
+- If agents keep saying "waiting" or "pending" for 5+ handoffs, respond: "TERMINATE - Workflow stalled. Manual review needed."
+
+**ALWAYS TERMINATE ON:**
+- Final approval → "The loan has been approved. Clear to close. TERMINATE"
+- Loan denial → "The loan has been denied. Adverse action notice issued. TERMINATE"  
+- Max handoffs (15) → "TERMINATE - Maximum handoff limit reached."
+- Infinite loop → "TERMINATE - Loop detected between agents."
+- Persistent errors → "TERMINATE - Error persists: [error]. Manual intervention required."
+
+**CRITICAL:** Your LAST word must be exactly "TERMINATE" when ending the workflow.
+
+**DO NOT:**
+- Ask the user to fix issues (this is autonomous)
+- Say "please inform me" or "keep me updated" (no human is listening)
+- Wait indefinitely for external events
+- Handoff more than 3 times without progress
+
+**Example Termination:**
+"The loan processor encountered a persistent maintenance window error with the credit bureau. After 3 attempts, the issue persists. TERMINATE"
+
+=== END TERMINATION RULES ===
+
+Your role is to route efficiently, detect problems early, and TERMINATE when necessary.
 """,
     reflect_on_tool_use=False,
     tools=[]
@@ -138,6 +150,19 @@ Be explicit about parallelism:
 - DO handoff to orchestrator when your phase is complete
 
 When in doubt: Can these tasks run at the same time? If yes, launch them together!
+
+=== HANDLING BLOCKED WORKFLOWS ===
+
+If you encounter a blocking error (maintenance window, system down, etc.):
+
+1. **First time:** Mention the issue and transfer to orchestrator
+2. **If orchestrator routes you back:** Check if the issue is resolved
+3. **If issue persists:** Respond: "Unable to proceed due to [error]. This workflow cannot continue. Transferring to orchestrator for termination."
+
+DO NOT keep saying "waiting for updates" indefinitely.
+DO NOT hand back to orchestrator more than twice for the same issue.
+
+If credit report fails multiple times, state clearly: "Credit report retrieval failed after retries. Workflow blocked."
 """,
     reflect_on_tool_use=True,
     tools=[

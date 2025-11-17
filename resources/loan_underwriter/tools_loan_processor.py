@@ -2,17 +2,24 @@
 Loan Processor tools with concurrent safety
 """
 
+
+"""
+Loan Processor tools with concurrent safety
+"""
+
 import random
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import Dict, List
 import uuid
+import copy  # ← ADD THIS for run_automated_underwriting
 
 from models import (
     LoanFile, LoanStatus, Document, DocumentType, DocumentStatus,
-    UnderwritingCondition, ConditionType, ConditionSeverity
+    UnderwritingCondition, ConditionType, ConditionSeverity,
+    Appraisal  # ← ADD THIS for order_appraisal
 )
-from file_manager import LoanFileManager
+from file_manager import LoanFileManager  # ← This is where file_manager comes from
 from external_systems import (
     CreditBureauSimulator, AppraisalManagementSimulator,
     TitleCompanySimulator, FloodCertificationSimulator,
@@ -21,8 +28,7 @@ from external_systems import (
     InvalidDataException, InsufficientCreditHistoryException,
     ExternalSystemException
 )
-
-file_manager = LoanFileManager()
+file_manager = LoanFileManager()  # ← This is the file_manager used in all functions
 
 
 async def verify_loan_documents(loan_number: str) -> str:
@@ -164,64 +170,90 @@ async def validate_document_quality(
     return "\n".join(result)
 
 
-async def order_credit_report(loan_number: str) -> str:
-    """Order credit report - CONCURRENT SAFE"""
+async def order_credit_report(loan_number: str, max_retries: int = 2) -> str:
+    """Order credit report - TRUE CONCURRENT SAFE"""
 
-    async with file_manager.acquire_loan_lock(loan_number):
-        loan_file = file_manager.load_loan_file(loan_number)
-        if not loan_file:
-            return f"❌ ERROR: Loan file {loan_number} not found"
+    # ========== PHASE 1: Load data (LOCKED) ==========
+    for attempt in range(1, max_retries + 1):
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if not loan_file:
+                return f"❌ ERROR: Loan file {loan_number} not found"
 
-        if not loan_file.borrowers:
-            return f"❌ ERROR: No borrower information in loan file"
+            if not loan_file.borrowers:
+                return f"❌ ERROR: No borrower information in loan file"
 
-        borrower = loan_file.borrowers[0]
+            borrower = loan_file.borrowers[0]
 
-        result = []
-        result.append(f"💳 ORDERING CREDIT REPORT")
-        result.append(f"Borrower: {borrower.first_name} {borrower.last_name}")
-        result.append(f"SSN: ***-**-{borrower.ssn[-4:]}")
-        result.append("=" * 60)
+            # Extract only what we need for the API call
+            borrower_data = {
+                "ssn": borrower.ssn,
+                "first_name": borrower.first_name,
+                "last_name": borrower.last_name
+            }
+    # Lock released here! Other tasks can now access the file
 
-        try:
-            result.append(f"📡 Contacting credit bureau...")
+    # ========== PHASE 2: External API call (NO LOCK - concurrent!) ==========
+    result = []
+    result.append(f"💳 ORDERING CREDIT REPORT")
+    result.append(f"Borrower: {borrower_data['first_name']} {borrower_data['last_name']}")
+    result.append(f"SSN: ***-**-{borrower_data['ssn'][-4:]}")
+    result.append("=" * 60)
 
-            credit_response = CreditBureauSimulator.pull_credit_report(
-                borrower_ssn=borrower.ssn,
-                borrower_name=f"{borrower.first_name} {borrower.last_name}",
-                pull_type="hard"
-            )
+    try:
+        result.append(f"📡 Contacting credit bureau...")
 
-            result.append(f"✅ Credit report received successfully")
-            result.append(f"Transaction ID: {credit_response.transaction_id}")
-            result.append("")
+        # This takes 2-5 seconds but doesn't block other tasks!
+        credit_response = CreditBureauSimulator.pull_credit_report(
+            borrower_ssn=borrower_data["ssn"],
+            borrower_name=f"{borrower_data['first_name']} {borrower_data['last_name']}",
+            pull_type="hard"
+        )
 
-            credit_report = credit_response.credit_report
-            borrower.credit_report = credit_report
+        result.append(f"✅ Credit report received successfully")
+        result.append(f"Transaction ID: {credit_response.transaction_id}")
+        result.append("")
 
-            result.append(f"📊 CREDIT REPORT SUMMARY:")
-            result.append(f"  Credit Score: {credit_report.credit_score}")
-            result.append(f"  Bureau: {credit_report.bureau}")
-            result.append(f"  Report Date: {credit_report.report_date.strftime('%Y-%m-%d')}")
-            result.append(f"  Tradelines: {len(credit_report.tradelines)}")
-            result.append(f"  Inquiries: {len(credit_report.inquiries)}")
-            result.append(f"  Total Monthly Debt: ${credit_report.total_monthly_debt:,.2f}")
+        credit_report = credit_response.credit_report
 
-            flags = []
-            if credit_report.credit_score < 620:
-                flags.append("⚠️  Credit score below 620 - may require LOE")
-            if credit_report.credit_score < 580:
-                flags.append("🚨 Credit score below 580 - HIGH RISK")
-            if len(credit_report.inquiries) > 3:
-                flags.append("⚠️  Multiple credit inquiries - LOE required")
-            if credit_report.derogatory_items:
-                flags.append(f"⚠️  {len(credit_report.derogatory_items)} derogatory item(s) found")
+        result.append(f"📊 CREDIT REPORT SUMMARY:")
+        result.append(f"  Credit Score: {credit_report.credit_score}")
+        result.append(f"  Bureau: {credit_report.bureau}")
+        result.append(f"  Report Date: {credit_report.report_date.strftime('%Y-%m-%d')}")
+        result.append(f"  Tradelines: {len(credit_report.tradelines)}")
+        result.append(f"  Inquiries: {len(credit_report.inquiries)}")
+        result.append(f"  Total Monthly Debt: ${credit_report.total_monthly_debt:,.2f}")
 
+        flags = []
+        if credit_report.credit_score < 620:
+            flags.append("⚠️  Credit score below 620 - may require LOE")
+        if credit_report.credit_score < 580:
+            flags.append("🚨 Credit score below 580 - HIGH RISK")
+        if len(credit_report.inquiries) > 3:
+            flags.append("⚠️  Multiple credit inquiries - LOE required")
+        if credit_report.derogatory_items:
+            flags.append(f"⚠️  {len(credit_report.derogatory_items)} derogatory item(s) found")
+
+        if flags:
+            result.append("\n🚩 FLAGS:")
+            result.extend(flags)
+
+        # ========== PHASE 3: Update file (LOCKED) ==========
+        async with file_manager.acquire_loan_lock(loan_number):
+            # IMPORTANT: Re-load the file to get fresh copy
+            # (other tasks might have modified it while we were calling the API)
+            loan_file = file_manager.load_loan_file(loan_number)
+            if not loan_file:
+                return f"❌ ERROR: Loan file {loan_number} not found"
+
+            # Update the file with credit report
+            loan_file.borrowers[0].credit_report = credit_report
+
+            # Add flags
             if flags:
-                result.append("\n🚩 FLAGS:")
-                result.extend(flags)
                 loan_file.flags.extend(flags)
 
+            # Add credit document
             credit_doc = Document(
                 document_id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
                 document_type=DocumentType.CREDIT_REPORT,
@@ -237,51 +269,66 @@ async def order_credit_report(loan_number: str) -> str:
             )
             loan_file.documents.append(credit_doc)
 
+            # Update status
             loan_file.update_status(
                 LoanStatus.CREDIT_ORDERED,
                 "loan_processor",
                 f"Credit report received - Score: {credit_report.credit_score}"
             )
 
+            # Save file
             file_manager.save_loan_file(loan_file)
             result.append(f"\n✅ Credit report added to loan file")
+        # Lock released
 
-        except SystemTimeoutException as e:
-            result.append(f"\n⏱️  TIMEOUT: {str(e)}")
-            result.append(f"🔔 ACTION: Retry credit pull in 5 minutes")
-            loan_file.add_audit_entry(
-                actor="loan_processor",
-                action="credit_order_failed",
-                details=f"Timeout: {str(e)}"
-            )
-            file_manager.save_loan_file(loan_file)
+    except SystemTimeoutException as e:
+        result.append(f"\n⏱️  TIMEOUT: {str(e)}")
+        result.append(f"🔔 ACTION: Retry credit pull in 5 minutes")
 
-        except SystemMaintenanceException as e:
-            result.append(f"\n🔧 MAINTENANCE: {str(e)}")
-            result.append(f"🔔 ACTION: Retry after maintenance window")
-            loan_file.add_audit_entry(
-                actor="loan_processor",
-                action="credit_order_failed",
-                details=f"Maintenance: {str(e)}"
-            )
-            file_manager.save_loan_file(loan_file)
+        # Save error to audit trail
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.add_audit_entry(
+                    actor="loan_processor",
+                    action="credit_order_failed",
+                    details=f"Timeout: {str(e)}"
+                )
+                file_manager.save_loan_file(loan_file)
 
-        except InsufficientCreditHistoryException as e:
-            result.append(f"\n❌ INSUFFICIENT CREDIT: {str(e)}")
-            result.append(f"🔔 ACTION: Request alternative credit documentation")
-            result.append(f"   - Utility payment history")
-            result.append(f"   - Rent payment history")
-            result.append(f"   - Manual underwriting may be required")
-            loan_file.flags.append("Insufficient credit history - alternative docs needed")
-            loan_file.add_audit_entry(
-                actor="loan_processor",
-                action="credit_order_failed",
-                details=f"Insufficient history: {str(e)}"
-            )
-            file_manager.save_loan_file(loan_file)
+    except SystemMaintenanceException as e:
+        result.append(f"\n🔧 MAINTENANCE: {str(e)}")
+        result.append(f"🔔 ACTION: Retry after maintenance window")
+
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.add_audit_entry(
+                    actor="loan_processor",
+                    action="credit_order_failed",
+                    details=f"Maintenance: {str(e)}"
+                )
+                file_manager.save_loan_file(loan_file)
+
+    except InsufficientCreditHistoryException as e:
+        result.append(f"\n❌ INSUFFICIENT CREDIT: {str(e)}")
+        result.append(f"🔔 ACTION: Request alternative credit documentation")
+        result.append(f"   - Utility payment history")
+        result.append(f"   - Rent payment history")
+        result.append(f"   - Manual underwriting may be required")
+
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.flags.append("Insufficient credit history - alternative docs needed")
+                loan_file.add_audit_entry(
+                    actor="loan_processor",
+                    action="credit_order_failed",
+                    details=f"Insufficient history: {str(e)}"
+                )
+                file_manager.save_loan_file(loan_file)
 
     return "\n".join(result)
-
 
 async def calculate_loan_ratios(loan_number: str) -> str:
     """Calculate financial ratios - CONCURRENT SAFE"""
@@ -451,45 +498,71 @@ async def calculate_loan_ratios(loan_number: str) -> str:
 
     return "\n".join(result)
 
-async def order_appraisal(loan_number: str) -> str:
-    """Order property appraisal - CONCURRENT SAFE"""
 
+# At the top of the file
+from file_manager import LoanFileManager
+
+file_manager = LoanFileManager()
+
+
+async def order_appraisal(loan_number: str) -> str:  # ← NOT @staticmethod, NOT in a class
+    """Order property appraisal - TRUE CONCURRENT SAFE"""
+
+    # ========== PHASE 1: Load data (LOCKED) ==========
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
         if not loan_file:
             return f"❌ ERROR: Loan file {loan_number} not found"
 
-        result = []
-        result.append(f"🏠 ORDERING APPRAISAL")
-        result.append(f"Property: {loan_file.property_info.property_address.street}")
-        result.append(
-            f"{loan_file.property_info.property_address.city}, {loan_file.property_info.property_address.state}")
-        result.append("=" * 60)
+        # Extract property data
+        property_data = {
+            "loan_number": loan_number,  # ← ADD THIS
+            "street": loan_file.property_info.property_address.street,
+            "city": loan_file.property_info.property_address.city,
+            "state": loan_file.property_info.property_address.state,
+            "purchase_price": loan_file.loan_info.purchase_price or Decimal("0")
+        }
+    # Lock released
 
-        try:
-            result.append(f"📡 Contacting Appraisal Management Company...")
+    # ========== PHASE 2: External API call (NO LOCK) ==========
+    result = []
+    result.append(f"🏠 ORDERING APPRAISAL")
+    result.append(f"Property: {property_data['street']}")
+    result.append(f"{property_data['city']}, {property_data['state']}")
+    result.append("=" * 60)
 
-            appraisal_response = AppraisalManagementSimulator.order_appraisal(
-                property_address=f"{loan_file.property_info.property_address.street}, {loan_file.property_info.property_address.city}",
-                purchase_price=loan_file.loan_info.purchase_price or Decimal("0"),
-                loan_amount=loan_file.loan_info.loan_amount
-            )
+    try:
+        result.append(f"📡 Contacting Appraisal Management Company...")
 
-            result.append(f"✅ Appraisal ordered successfully")
-            result.append(f"Transaction ID: {appraisal_response.transaction_id}")
-            result.append(f"Order ID: {appraisal_response.response_data['order_id']}")
-            result.append(f"Appraisal Fee: ${appraisal_response.response_data['fee']:.2f}")
-            result.append(f"Estimated Completion: {appraisal_response.response_data['estimated_completion']}")
+        # Call the SIMULATOR (which is in external_systems.py)
+        appraisal_response = AppraisalManagementSimulator.order_appraisal(
+            loan_number=property_data['loan_number'],  # ← FIX: Add loan_number
+            property_address=f"{property_data['street']}, {property_data['city']}",
+            purchase_price=property_data['purchase_price']
+            # ← FIX: Remove loan_amount (not in simulator signature)
+        )
 
-            if appraisal_response.response_data.get('appraiser_assigned'):
-                result.append(f"✅ Appraiser assigned")
-            else:
-                result.append(f"⏳ Appraiser assignment pending")
+        result.append(f"✅ Appraisal ordered successfully")
+        result.append(f"Transaction ID: {appraisal_response.transaction_id}")
+        result.append(f"Order ID: {appraisal_response.response_data['order_id']}")
+        result.append(f"Appraisal Fee: ${appraisal_response.response_data['fee']:.2f}")
+        result.append(f"Estimated Completion: {appraisal_response.response_data['estimated_completion']}")
 
-            if appraisal_response.warnings:
-                result.append(f"\n⚠️  WARNINGS:")
-                for warning in appraisal_response.warnings:
-                    result.append(f"  - {warning}")
+        if appraisal_response.response_data.get('appraiser_assigned'):
+            result.append(f"✅ Appraiser assigned")
+        else:
+            result.append(f"⏳ Appraiser assignment pending")
+
+        if appraisal_response.warnings:
+            result.append(f"\n⚠️  WARNINGS:")
+            for warning in appraisal_response.warnings:
+                result.append(f"  - {warning}")
+
+        # ========== PHASE 3: Update file (LOCKED) ==========
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if not loan_file:
+                return f"❌ ERROR: Loan file {loan_number} not found"
 
             from models import Appraisal
             loan_file.appraisal = Appraisal(
@@ -518,15 +591,19 @@ async def order_appraisal(loan_number: str) -> str:
             file_manager.save_loan_file(loan_file)
             result.append(f"\n✅ Appraisal record added to loan file")
 
-        except ExternalSystemException as e:
-            result.append(f"\n❌ ERROR: {str(e)}")
-            result.append(f"🔔 ACTION: Follow up with AMC or consider alternative appraiser")
-            loan_file.add_audit_entry(
-                actor="loan_processor",
-                action="appraisal_order_failed",
-                details=str(e)
-            )
-            file_manager.save_loan_file(loan_file)
+    except ExternalSystemException as e:
+        result.append(f"\n❌ ERROR: {str(e)}")
+        result.append(f"🔔 ACTION: Follow up with AMC or consider alternative appraiser")
+
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.add_audit_entry(
+                    actor="loan_processor",
+                    action="appraisal_order_failed",
+                    details=str(e)
+                )
+                file_manager.save_loan_file(loan_file)
 
     return "\n".join(result)
 
@@ -637,54 +714,71 @@ async def receive_appraisal(loan_number: str) -> str:
 
 
 async def order_flood_certification(loan_number: str) -> str:
-    """Order flood certification - CONCURRENT SAFE"""
+    """Order flood certification - TRUE CONCURRENT SAFE"""
 
+    # ========== PHASE 1: Load data (LOCKED) ==========
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
         if not loan_file:
             return f"❌ ERROR: Loan file {loan_number} not found"
 
-        result = []
-        result.append(f"🌊 ORDERING FLOOD CERTIFICATION")
+        # Extract property address
         property_address = loan_file.property_info.property_address
-        result.append(f"Property: {property_address.street}")
-        result.append(f"{property_address.city}, {property_address.state} {property_address.zip_code}")
-        result.append("=" * 60)
+        address_data = {
+            "street": property_address.street,
+            "city": property_address.city,
+            "state": property_address.state,
+            "zip_code": property_address.zip_code
+        }
+    # Lock released
 
-        try:
-            result.append(f"📡 Contacting flood certification service...")
+    # ========== PHASE 2: External API call (NO LOCK) ==========
+    result = []
+    result.append(f"🌊 ORDERING FLOOD CERTIFICATION")
+    result.append(f"Property: {address_data['street']}")
+    result.append(f"{address_data['city']}, {address_data['state']} {address_data['zip_code']}")
+    result.append("=" * 60)
 
-            flood_response = FloodCertificationSimulator.check_flood_zone(
-                property_address=f"{property_address.street}, {property_address.city}",
-                zip_code=property_address.zip_code
-            )
+    try:
+        result.append(f"📡 Contacting flood certification service...")
 
-            result.append(f"✅ Flood certification received")
-            result.append(f"Transaction ID: {flood_response.transaction_id}")
-            result.append("")
+        flood_response = FloodCertificationSimulator.check_flood_zone(
+            property_address=f"{address_data['street']}, {address_data['city']}",
+            zip_code=address_data['zip_code']
+        )
 
-            result.append(f"📊 FLOOD CERTIFICATION RESULTS:")
-            result.append(f"  FEMA Panel: {flood_response.response_data['fema_panel']}")
-            result.append(f"  Flood Zone: {flood_response.flood_zone_designation}")
-            result.append(f"  In Flood Zone: {'YES' if flood_response.in_flood_zone else 'NO'}")
-            result.append(f"  Flood Insurance Required: {'YES' if flood_response.flood_insurance_required else 'NO'}")
+        result.append(f"✅ Flood certification received")
+        result.append(f"Transaction ID: {flood_response.transaction_id}")
+        result.append("")
 
-            if flood_response.base_flood_elevation:
-                result.append(f"  Base Flood Elevation: {flood_response.base_flood_elevation}")
+        result.append(f"📊 FLOOD CERTIFICATION RESULTS:")
+        result.append(f"  FEMA Panel: {flood_response.response_data['fema_panel']}")
+        result.append(f"  Flood Zone: {flood_response.flood_zone_designation}")
+        result.append(f"  In Flood Zone: {'YES' if flood_response.in_flood_zone else 'NO'}")
+        result.append(f"  Flood Insurance Required: {'YES' if flood_response.flood_insurance_required else 'NO'}")
 
-            result.append(f"\n  🌡️ Future Climate Risk Score: {flood_response.future_risk_score}/10")
+        if flood_response.base_flood_elevation:
+            result.append(f"  Base Flood Elevation: {flood_response.base_flood_elevation}")
 
-            if flood_response.future_risk_score >= 7:
-                result.append(f"  🚨 HIGH FUTURE RISK - Climate change impact significant")
-            elif flood_response.future_risk_score >= 5:
-                result.append(f"  ⚠️ MODERATE FUTURE RISK - Monitor climate trends")
-            else:
-                result.append(f"  ✅ LOW FUTURE RISK")
+        result.append(f"\n  🌡️ Future Climate Risk Score: {flood_response.future_risk_score}/10")
 
-            if flood_response.warnings:
-                result.append(f"\n⚠️  WARNINGS:")
-                for warning in flood_response.warnings:
-                    result.append(f"  - {warning}")
+        if flood_response.future_risk_score >= 7:
+            result.append(f"  🚨 HIGH FUTURE RISK - Climate change impact significant")
+        elif flood_response.future_risk_score >= 5:
+            result.append(f"  ⚠️ MODERATE FUTURE RISK - Monitor climate trends")
+        else:
+            result.append(f"  ✅ LOW FUTURE RISK")
+
+        if flood_response.warnings:
+            result.append(f"\n⚠️  WARNINGS:")
+            for warning in flood_response.warnings:
+                result.append(f"  - {warning}")
+
+        # ========== PHASE 3: Update file (LOCKED) ==========
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if not loan_file:
+                return f"❌ ERROR: Loan file {loan_number} not found"
 
             loan_file.property_info.flood_zone = flood_response.flood_zone_designation
             loan_file.property_info.flood_insurance_required = flood_response.flood_insurance_required
@@ -717,16 +811,17 @@ async def order_flood_certification(loan_number: str) -> str:
             file_manager.save_loan_file(loan_file)
             result.append(f"\n✅ Flood certification added to loan file")
 
-        except SystemTimeoutException as e:
-            result.append(f"\n⏱️  TIMEOUT: {str(e)}")
-            result.append(f"🔔 ACTION: Retry flood certification")
+    except SystemTimeoutException as e:
+        result.append(f"\n⏱️  TIMEOUT: {str(e)}")
+        result.append(f"🔔 ACTION: Retry flood certification")
 
     return "\n".join(result)
 
 
 async def verify_employment(loan_number: str, employment_index: int = 0) -> str:
-    """Verify borrower employment - CONCURRENT SAFE"""
+    """Verify borrower employment - TRUE CONCURRENT SAFE"""
 
+    # ========== PHASE 1: Load data (LOCKED) ==========
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
         if not loan_file:
@@ -741,42 +836,65 @@ async def verify_employment(loan_number: str, employment_index: int = 0) -> str:
 
         employment = borrower.employment[employment_index]
 
-        result = []
-        result.append(f"💼 VERIFYING EMPLOYMENT")
-        result.append(f"Borrower: {borrower.first_name} {borrower.last_name}")
-        result.append(f"Employer: {employment.employer_name}")
-        result.append("=" * 60)
+        # Extract employment data
+        employment_data = {
+            "employer_name": employment.employer_name,
+            "employee_name": f"{borrower.first_name} {borrower.last_name}",
+            "reported_income": employment.monthly_income
+        }
+    # Lock released
 
-        try:
-            result.append(f"📡 Contacting employer for verification...")
+    # ========== PHASE 2: External API call (NO LOCK) ==========
+    result = []
+    result.append(f"💼 VERIFYING EMPLOYMENT")
+    result.append(f"Borrower: {employment_data['employee_name']}")
+    result.append(f"Employer: {employment_data['employer_name']}")
+    result.append("=" * 60)
 
-            voe_response = EmploymentVerificationSimulator.verify_employment(
-                employer_name=employment.employer_name,
-                employee_name=f"{borrower.first_name} {borrower.last_name}",
-                reported_income=employment.monthly_income
-            )
+    try:
+        result.append(f"📡 Contacting employer for verification...")
 
-            result.append(f"✅ Employment verified")
-            result.append(f"Transaction ID: {voe_response.transaction_id}")
-            result.append("")
+        # Call the SIMULATOR (in external_systems.py)
+        voe_response = EmploymentVerificationSimulator.verify_employment(
+            employer_name=employment_data['employer_name'],
+            employee_name=employment_data['employee_name'],
+            reported_income=employment_data['reported_income']
+        )
 
-            result.append(f"📊 VERIFICATION RESULTS:")
-            result.append(f"  Employment Status: {voe_response.response_data['employment_status']}")
-            result.append(f"  Hire Date: {voe_response.response_data['hire_date']}")
-            result.append(f"  Employment Type: {voe_response.response_data['employment_type']}")
-            result.append(f"  Reported Income: ${employment.monthly_income:,.2f}/month")
-            result.append(f"  Verified Income: ${voe_response.response_data['verified_income']:,.2f}/month")
+        result.append(f"✅ Employment verified")
+        result.append(f"Transaction ID: {voe_response.transaction_id}")
+        result.append("")
 
-            if voe_response.warnings:
-                result.append(f"\n⚠️  WARNINGS:")
-                for warning in voe_response.warnings:
-                    result.append(f"  - {warning}")
-                    loan_file.flags.append(warning)
+        result.append(f"📊 VERIFICATION RESULTS:")
+        result.append(f"  Employment Status: {voe_response.response_data['employment_status']}")
+        result.append(f"  Hire Date: {voe_response.response_data['hire_date']}")
+        result.append(f"  Employment Type: {voe_response.response_data['employment_type']}")
+        result.append(f"  Reported Income: ${employment_data['reported_income']:,.2f}/month")
+        result.append(f"  Verified Income: ${voe_response.response_data['verified_income']:,.2f}/month")
 
-            employment.verified = True
-            employment.verification_date = datetime.now()
-            employment.verification_method = "VOE - Employer Direct Contact"
+        warnings = []
+        if voe_response.warnings:
+            result.append(f"\n⚠️  WARNINGS:")
+            for warning in voe_response.warnings:
+                result.append(f"  - {warning}")
+                warnings.append(warning)
 
+        # ========== PHASE 3: Update file (LOCKED) ==========
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if not loan_file:
+                return f"❌ ERROR: Loan file {loan_number} not found"
+
+            # Update employment verification
+            loan_file.borrowers[0].employment[employment_index].verified = True
+            loan_file.borrowers[0].employment[employment_index].verification_date = datetime.now()
+            loan_file.borrowers[0].employment[employment_index].verification_method = "VOE - Employer Direct Contact"
+
+            # Add flags
+            if warnings:
+                loan_file.flags.extend(warnings)
+
+            # Add VOE document
             voe_doc = Document(
                 document_id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
                 document_type=DocumentType.EMPLOYMENT_VERIFICATION,
@@ -785,7 +903,7 @@ async def verify_employment(loan_number: str, employment_index: int = 0) -> str:
                 reviewed_by="loan_processor",
                 reviewed_date=datetime.now(),
                 metadata={
-                    "employer": employment.employer_name,
+                    "employer": employment_data['employer_name'],
                     "verified_income": voe_response.response_data['verified_income'],
                     "hire_date": voe_response.response_data['hire_date']
                 }
@@ -795,18 +913,17 @@ async def verify_employment(loan_number: str, employment_index: int = 0) -> str:
             loan_file.add_audit_entry(
                 actor="loan_processor",
                 action="employment_verified",
-                details=f"Employer: {employment.employer_name}, Income: ${voe_response.response_data['verified_income']}"
+                details=f"Employer: {employment_data['employer_name']}, Income: ${voe_response.response_data['verified_income']}"
             )
 
             file_manager.save_loan_file(loan_file)
             result.append(f"\n✅ Employment verification added to loan file")
 
-        except SystemTimeoutException as e:
-            result.append(f"\n❌ ERROR: {str(e)}")
-            result.append(f"🔔 ACTION: Request manual VOE form from borrower")
+    except SystemTimeoutException as e:
+        result.append(f"\n❌ ERROR: {str(e)}")
+        result.append(f"🔔 ACTION: Request manual VOE form from borrower")
 
     return "\n".join(result)
-
 
 async def submit_to_underwriting(loan_number: str) -> str:
     """Submit complete loan file to underwriting - CONCURRENT SAFE"""
@@ -919,7 +1036,7 @@ async def submit_to_underwriting(loan_number: str) -> str:
 
 async def clear_underwriting_conditions(
         loan_number: str,
-        cleared_conditions: Dict[str, str]
+        cleared_conditions: List[str]
 ) -> str:
     """Clear underwriting conditions - CONCURRENT SAFE"""
 
@@ -1008,13 +1125,21 @@ async def order_appraisal(loan_number: str) -> str:
             f"{loan_file.property_info.property_address.city}, {loan_file.property_info.property_address.state}")
         result.append("=" * 60)
 
+        property_data = {
+            "loan_number": loan_number,  # ← ADD THIS
+            "street": loan_file.property_info.property_address.street,
+            "city": loan_file.property_info.property_address.city,
+            "state": loan_file.property_info.property_address.state,
+            "purchase_price": loan_file.loan_info.purchase_price or Decimal("0")
+        }
+
         try:
             result.append(f"📡 Contacting Appraisal Management Company...")
 
             appraisal_response = AppraisalManagementSimulator.order_appraisal(
+                loan_number=property_data['loan_number'],  # ← FIX: Add loan_number
                 property_address=f"{loan_file.property_info.property_address.street}, {loan_file.property_info.property_address.city}",
-                purchase_price=loan_file.loan_info.purchase_price or Decimal("0"),
-                loan_amount=loan_file.loan_info.loan_amount
+                purchase_price=loan_file.loan_info.purchase_price or Decimal("0")
             )
 
             result.append(f"✅ Appraisal ordered successfully")
@@ -1265,91 +1390,6 @@ async def order_flood_certification(loan_number: str) -> str:
 
     return "\n".join(result)
 
-
-async def verify_employment(loan_number: str, employment_index: int = 0) -> str:
-    """Verify borrower employment - CONCURRENT SAFE"""
-
-    async with file_manager.acquire_loan_lock(loan_number):
-        loan_file = file_manager.load_loan_file(loan_number)
-        if not loan_file:
-            return f"❌ ERROR: Loan file {loan_number} not found"
-
-        if not loan_file.borrowers or not loan_file.borrowers[0].employment:
-            return f"❌ ERROR: No employment information in loan file"
-
-        borrower = loan_file.borrowers[0]
-        if employment_index >= len(borrower.employment):
-            return f"❌ ERROR: Employment index {employment_index} out of range"
-
-        employment = borrower.employment[employment_index]
-
-        result = []
-        result.append(f"💼 VERIFYING EMPLOYMENT")
-        result.append(f"Borrower: {borrower.first_name} {borrower.last_name}")
-        result.append(f"Employer: {employment.employer_name}")
-        result.append("=" * 60)
-
-        try:
-            result.append(f"📡 Contacting employer for verification...")
-
-            voe_response = EmploymentVerificationSimulator.verify_employment(
-                employer_name=employment.employer_name,
-                employee_name=f"{borrower.first_name} {borrower.last_name}",
-                reported_income=employment.monthly_income
-            )
-
-            result.append(f"✅ Employment verified")
-            result.append(f"Transaction ID: {voe_response.transaction_id}")
-            result.append("")
-
-            result.append(f"📊 VERIFICATION RESULTS:")
-            result.append(f"  Employment Status: {voe_response.response_data['employment_status']}")
-            result.append(f"  Hire Date: {voe_response.response_data['hire_date']}")
-            result.append(f"  Employment Type: {voe_response.response_data['employment_type']}")
-            result.append(f"  Reported Income: ${employment.monthly_income:,.2f}/month")
-            result.append(f"  Verified Income: ${voe_response.response_data['verified_income']:,.2f}/month")
-
-            if voe_response.warnings:
-                result.append(f"\n⚠️  WARNINGS:")
-                for warning in voe_response.warnings:
-                    result.append(f"  - {warning}")
-                    loan_file.flags.append(warning)
-
-            employment.verified = True
-            employment.verification_date = datetime.now()
-            employment.verification_method = "VOE - Employer Direct Contact"
-
-            voe_doc = Document(
-                document_id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
-                document_type=DocumentType.EMPLOYMENT_VERIFICATION,
-                status=DocumentStatus.APPROVED,
-                received_date=datetime.now(),
-                reviewed_by="loan_processor",
-                reviewed_date=datetime.now(),
-                metadata={
-                    "employer": employment.employer_name,
-                    "verified_income": voe_response.response_data['verified_income'],
-                    "hire_date": voe_response.response_data['hire_date']
-                }
-            )
-            loan_file.documents.append(voe_doc)
-
-            loan_file.add_audit_entry(
-                actor="loan_processor",
-                action="employment_verified",
-                details=f"Employer: {employment.employer_name}, Income: ${voe_response.response_data['verified_income']}"
-            )
-
-            file_manager.save_loan_file(loan_file)
-            result.append(f"\n✅ Employment verification added to loan file")
-
-        except SystemTimeoutException as e:
-            result.append(f"\n❌ ERROR: {str(e)}")
-            result.append(f"🔔 ACTION: Request manual VOE form from borrower")
-
-    return "\n".join(result)
-
-
 async def submit_to_underwriting(loan_number: str) -> str:
     """Submit complete loan file to underwriting - CONCURRENT SAFE"""
 
@@ -1455,79 +1495,5 @@ async def submit_to_underwriting(loan_number: str) -> str:
 
         result.append(f"\n✅ File submitted successfully - handed off to underwriter")
         result.append(f"\n🔄 Next Step: Underwriter will review file and issue decision")
-
-    return "\n".join(result)
-
-
-async def clear_underwriting_conditions(
-        loan_number: str,
-        cleared_conditions: Dict[str, str]
-) -> str:
-    """Clear underwriting conditions - CONCURRENT SAFE"""
-
-    async with file_manager.acquire_loan_lock(loan_number):
-        loan_file = file_manager.load_loan_file(loan_number)
-        if not loan_file:
-            return f"❌ ERROR: Loan file {loan_number} not found"
-
-        result = []
-        result.append(f"✅ CLEARING UNDERWRITING CONDITIONS")
-        result.append(f"Loan #{loan_number}")
-        result.append("=" * 60)
-
-        cleared_count = 0
-        not_found_count = 0
-
-        for condition_id, clearing_notes in cleared_conditions.items():
-            matching_conditions = [c for c in loan_file.current_conditions if c.condition_id == condition_id]
-
-            if not matching_conditions:
-                result.append(f"\n❌ Condition {condition_id} not found")
-                not_found_count += 1
-                continue
-
-            condition = matching_conditions[0]
-
-            result.append(f"\n✅ Clearing Condition: {condition.condition_id}")
-            result.append(f"  Type: {condition.condition_type.value}")
-            result.append(f"  Description: {condition.description}")
-            result.append(f"  Clearing Notes: {clearing_notes}")
-
-            condition.status = "cleared"
-            condition.cleared_date = datetime.now()
-            condition.clearing_notes = clearing_notes
-
-            cleared_count += 1
-
-        result.append(f"\n{'=' * 60}")
-        result.append(f"Conditions Cleared: {cleared_count}")
-        result.append(f"Conditions Not Found: {not_found_count}")
-        result.append(
-            f"Remaining Conditions: {len([c for c in loan_file.current_conditions if c.status == 'pending'])}")
-
-        all_cleared = all(c.status == "cleared" for c in loan_file.current_conditions)
-
-        if all_cleared:
-            result.append(f"\n✅ ALL CONDITIONS CLEARED")
-            result.append(f"🔄 Ready to resubmit to underwriting for final approval")
-
-            loan_file.update_status(
-                LoanStatus.CONDITIONS_SUBMITTED,
-                "loan_processor",
-                "All underwriting conditions cleared"
-            )
-        else:
-            remaining = [c for c in loan_file.current_conditions if c.status == "pending"]
-            result.append(f"\n⚠️  PENDING CONDITIONS:")
-            for cond in remaining:
-                result.append(f"  - {cond.condition_id}: {cond.description}")
-
-        loan_file.add_audit_entry(
-            actor="loan_processor",
-            action="conditions_cleared",
-            details=f"Cleared {cleared_count} conditions"
-        )
-
-        file_manager.save_loan_file(loan_file)
 
     return "\n".join(result)

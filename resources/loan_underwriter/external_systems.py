@@ -3,6 +3,7 @@ Simulated external system integrations with realistic responses and exceptions
 """
 
 import random
+import uuid
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -11,7 +12,7 @@ import time
 from models import (
     CreditBureauResponse, CreditReport, CreditTradeline, CreditInquiry,
     AutomatedUnderwritingResponse, FloodCertificationResponse,
-    ExternalSystemResponse, LoanFile
+    ExternalSystemResponse, LoanFile, Document, DocumentType, DocumentStatus
 )
 
 
@@ -316,47 +317,145 @@ class FloodCertificationSimulator:
 class AppraisalManagementSimulator:
     """Simulates appraisal ordering and management"""
 
+    # @staticmethod
+    # async def order_appraisal(loan_number: str,
+    #                           property_address: str,
+    #                           purchase_price) -> str:
+    #     """Order property appraisal - TRUE CONCURRENT SAFE"""
+    #
+    #     # ========== PHASE 1: Load data (LOCKED) ==========
+    #     async with file_manager.acquire_loan_lock(loan_number):
+    #         loan_file = file_manager.load_loan_file(loan_number)
+    #         if not loan_file:
+    #             return f"❌ ERROR: Loan file {loan_number} not found"
+    #
+    #         # Extract property data
+    #         property_data = {
+    #             "street": loan_file.property_info.property_address.street,
+    #             "city": loan_file.property_info.property_address.city,
+    #             "state": loan_file.property_info.property_address.state,
+    #             "purchase_price": loan_file.loan_info.purchase_price or Decimal("0"),
+    #             "loan_amount": loan_file.loan_info.loan_amount
+    #         }
+    #     # Lock released
+    #
+    #     # ========== PHASE 2: External API call (NO LOCK) ==========
+    #     result = []
+    #     result.append(f"🏠 ORDERING APPRAISAL")
+    #     result.append(f"Property: {property_data['street']}")
+    #     result.append(f"{property_data['city']}, {property_data['state']}")
+    #     result.append("=" * 60)
+    #
+    #     try:
+    #         result.append(f"📡 Contacting Appraisal Management Company...")
+    #
+    #         appraisal_response = AppraisalManagementSimulator.order_appraisal(
+    #             property_address=f"{property_data['street']}, {property_data['city']}",
+    #             purchase_price=property_data['purchase_price'],
+    #             loan_amount=property_data['loan_amount']
+    #         )
+    #
+    #         result.append(f"✅ Appraisal ordered successfully")
+    #         result.append(f"Transaction ID: {appraisal_response.transaction_id}")
+    #         result.append(f"Order ID: {appraisal_response.response_data['order_id']}")
+    #         result.append(f"Appraisal Fee: ${appraisal_response.response_data['fee']:.2f}")
+    #         result.append(f"Estimated Completion: {appraisal_response.response_data['estimated_completion']}")
+    #
+    #         if appraisal_response.response_data.get('appraiser_assigned'):
+    #             result.append(f"✅ Appraiser assigned")
+    #         else:
+    #             result.append(f"⏳ Appraiser assignment pending")
+    #
+    #         if appraisal_response.warnings:
+    #             result.append(f"\n⚠️  WARNINGS:")
+    #             for warning in appraisal_response.warnings:
+    #                 result.append(f"  - {warning}")
+    #
+    #         # ========== PHASE 3: Update file (LOCKED) ==========
+    #         async with file_manager.acquire_loan_lock(loan_number):
+    #             loan_file = file_manager.load_loan_file(loan_number)
+    #             if not loan_file:
+    #                 return f"❌ ERROR: Loan file {loan_number} not found"
+    #
+    #             from models import Appraisal
+    #             loan_file.appraisal = Appraisal(
+    #                 appraisal_id=appraisal_response.response_data['order_id'],
+    #                 ordered_date=datetime.now(),
+    #                 status="ordered"
+    #             )
+    #
+    #             appraisal_doc = Document(
+    #                 document_id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
+    #                 document_type=DocumentType.APPRAISAL,
+    #                 status=DocumentStatus.REQUESTED,
+    #                 metadata={
+    #                     "order_id": appraisal_response.response_data['order_id'],
+    #                     "estimated_completion": appraisal_response.response_data['estimated_completion']
+    #                 }
+    #             )
+    #             loan_file.documents.append(appraisal_doc)
+    #
+    #             loan_file.update_status(
+    #                 LoanStatus.APPRAISAL_ORDERED,
+    #                 "loan_processor",
+    #                 f"Appraisal ordered - Order ID: {appraisal_response.response_data['order_id']}"
+    #             )
+    #
+    #             file_manager.save_loan_file(loan_file)
+    #             result.append(f"\n✅ Appraisal record added to loan file")
+    #
+    #     except ExternalSystemException as e:
+    #         result.append(f"\n❌ ERROR: {str(e)}")
+    #         result.append(f"🔔 ACTION: Follow up with AMC or consider alternative appraiser")
+    #
+    #         async with file_manager.acquire_loan_lock(loan_number):
+    #             loan_file = file_manager.load_loan_file(loan_number)
+    #             if loan_file:
+    #                 loan_file.add_audit_entry(
+    #                     actor="loan_processor",
+    #                     action="appraisal_order_failed",
+    #                     details=str(e)
+    #                 )
+    #                 file_manager.save_loan_file(loan_file)
+    #
+    #     return "\n".join(result)@staticmethod
+    #
+
     @staticmethod
-    def order_appraisal(
-            property_address: str,
-            purchase_price: Decimal,
-            loan_amount: Decimal
-    ) -> ExternalSystemResponse:
+    def order_appraisal(loan_number: str,  # ← Accept parameters
+                        property_address: str,
+                        purchase_price) -> ExternalSystemResponse:
         """
-        Order appraisal
-
-        Exceptions:
-        - 1% chance of no appraisers available
-        - 3% chance of delay due to rural area
+        Simulate ordering an appraisal from AMC
+        Returns simulated response - NO file operations!
         """
+        # Simulate delay
+        import time
+        time.sleep(random.uniform(1.0, 2.0))
 
-        time.sleep(random.uniform(0.5, 1.5))
+        # Generate fake data
+        order_id = f"APR-{random.randint(100000, 999999)}"
+        transaction_id = f"TXN-{random.randint(100000, 999999)}"
 
-        # Random exceptions
-        rand = random.random()
-        if rand < 0.01:
-            raise ExternalSystemException("No appraisers available in area - 2 week delay")
+        response_data = {
+            'order_id': order_id,
+            'loan_number': loan_number,  # ← USE the parameters
+            'property_address': property_address,  # ← USE the parameters
+            'purchase_price': float(purchase_price),  # ← USE the parameters
+            'fee': 500.00,
+            'estimated_completion': (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'),
+            'appraiser_assigned': random.choice([True, False])
+        }
 
-        warnings = []
-        if rand < 0.04:
-            warnings.append("Rural property - appraiser assignment may take 5-7 days")
-
-        # Estimated completion (7-14 days typical)
-        estimated_days = random.randint(7, 14)
-        estimated_completion = (datetime.now() + timedelta(days=estimated_days)).date()
-
+        # Return simulated response
         return ExternalSystemResponse(
             success=True,
-            system_name="AppraisalManagement",
-            transaction_id=f"AMC-{random.randint(100000, 999999)}",
-            response_data={
-                "order_id": f"APR-{random.randint(100000, 999999)}",
-                "appraiser_assigned": random.choice([True, False]),
-                "estimated_completion": estimated_completion.isoformat(),
-                "fee": float(random.randint(450, 650))
-            },
-            warnings=warnings
+            system_name="Employment Verification Service",
+            transaction_id=transaction_id,
+            response_data=response_data,
+            warnings=[]
         )
+
 
     @staticmethod
     def complete_appraisal(
@@ -522,43 +621,47 @@ class IRSTranscriptSimulator:
 # ============== EMPLOYMENT VERIFICATION SIMULATOR ==============
 
 class EmploymentVerificationSimulator:
-    """Simulates employment verification service (The Work Number, direct employer contact)"""
+    """Simulates employment verification service"""
 
     @staticmethod
-    def verify_employment(
-            employer_name: str,
-            employee_name: str,
-            reported_income: Decimal
-    ) -> ExternalSystemResponse:
+    def verify_employment(employer_name: str,
+                          employee_name: str,
+                          reported_income) -> ExternalSystemResponse:
         """
-        Verify employment
-
-        Exceptions:
-        - 5% chance employer doesn't respond
-        - 10% chance of income discrepancy
+        Simulate employment verification
+        NO file operations - just return fake data
         """
 
-        time.sleep(random.uniform(1.0, 2.0))
+        # Simulate processing delay
+        time.sleep(random.uniform(1.0, 3.0))
 
-        if random.random() < 0.05:
-            raise SystemTimeoutException(f"Employer {employer_name} did not respond - manual verification required")
+        # Generate fake response
+        transaction_id = f"VOE-{random.randint(100000, 999999)}"
 
-        # 10% chance of income discrepancy
-        verified_income = reported_income
+        # Simulate verification with slight income variance
+        verified_income = float(reported_income) * random.uniform(0.95, 1.05)
+
+        response_data = {
+            'employer_name': employer_name,
+            'employee_name': employee_name,
+            'employment_status': 'active',
+            'hire_date': (datetime.now() - timedelta(days=random.randint(365, 2000))).strftime('%Y-%m-%d'),
+            'employment_type': random.choice(['full_time', 'part_time', 'contract']),
+            'reported_income': float(reported_income),
+            'verified_income': round(verified_income, 2),
+            'position': 'Employee'
+        }
+
+        # Add warnings if income variance is significant
         warnings = []
-        if random.random() < 0.10:
-            verified_income = reported_income * Decimal(str(random.uniform(0.85, 0.95)))
-            warnings.append(f"Income discrepancy: Reported ${reported_income}, Verified ${verified_income}")
+        if abs(verified_income - float(reported_income)) > float(reported_income) * 0.1:
+            warnings.append(
+                f"Income variance detected: Reported ${reported_income:.2f}, Verified ${verified_income:.2f}")
 
         return ExternalSystemResponse(
             success=True,
-            system_name="EmploymentVerification",
-            transaction_id=f"VOE-{random.randint(100000, 999999)}",
-            response_data={
-                "employment_status": random.choice(["Full-time", "Full-time", "Part-time"]),
-                "verified_income": float(verified_income),
-                "hire_date": (date.today() - timedelta(days=random.randint(365, 3650))).isoformat(),
-                "employment_type": "Permanent"
-            },
+            system_name="AppraisalManagementCompany",
+            transaction_id=transaction_id,
+            response_data=response_data,
             warnings=warnings
         )
