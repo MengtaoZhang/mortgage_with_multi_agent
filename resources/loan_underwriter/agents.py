@@ -6,6 +6,9 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 import os
 
+from openai.types.beta import FunctionTool
+
+from resources.loan_underwriter.tools_loan_processor import collect_documents
 # Import all tools
 from tools_loan_processor import (
     verify_loan_documents, validate_document_quality, order_credit_report,
@@ -38,8 +41,6 @@ orchestrator_agent = AssistantAgent(
     model_client=model_client4o,
     handoffs=["loan_processor_agent", "underwriter_agent"],
     system_message="""You are the orchestrator agent for mortgage loan underwriting workflow.
-
-... [existing content] ...
 
 === CRITICAL: TERMINATION RULES (ENFORCE STRICTLY) ===
 
@@ -175,7 +176,8 @@ If credit report fails multiple times, state clearly: "Credit report retrieval f
         order_flood_certification,
         verify_employment,
         submit_to_underwriting,
-        clear_underwriting_conditions
+        clear_underwriting_conditions,
+        collect_documents
     ]
 )
 

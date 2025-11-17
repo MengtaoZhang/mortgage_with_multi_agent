@@ -1050,62 +1050,57 @@ async def clear_underwriting_conditions(
         result.append(f"Loan #{loan_number}")
         result.append("=" * 60)
 
+        if not loan_file.current_conditions:
+            result.append("\n❌ No conditions on file to clear")
+            return "\n".join(result)
+
         cleared_count = 0
         not_found_count = 0
 
-        for condition_id, clearing_notes in cleared_conditions.items():
-            matching_conditions = [c for c in loan_file.current_conditions if c.condition_id == condition_id]
+        # For each description, find matching conditions
+        for description in cleared_conditions:
+            found = False
+            for condition in loan_file.current_conditions:
+                # Match by description similarity
+                if condition.status != "cleared" and (
+                        description.lower() in condition.description.lower() or
+                        condition.description.lower() in description.lower()
+                ):
+                    condition.status = "cleared"
+                    condition.cleared_date = datetime.now()
+                    condition.cleared_by = "loan_processor"
+                    cleared_count += 1
+                    found = True
 
-            if not matching_conditions:
-                result.append(f"\n❌ Condition {condition_id} not found")
+                    result.append(f"\n✅ Cleared: {condition.condition_id}")
+                    result.append(f"   {condition.description}")
+                    break
+
+            if not found:
                 not_found_count += 1
-                continue
-
-            condition = matching_conditions[0]
-
-            result.append(f"\n✅ Clearing Condition: {condition.condition_id}")
-            result.append(f"  Type: {condition.condition_type.value}")
-            result.append(f"  Description: {condition.description}")
-            result.append(f"  Clearing Notes: {clearing_notes}")
-
-            condition.status = "cleared"
-            condition.cleared_date = datetime.now()
-            condition.clearing_notes = clearing_notes
-
-            cleared_count += 1
+                result.append(f"\n❌ Condition not found: {description[:50]}...")
 
         result.append(f"\n{'=' * 60}")
         result.append(f"Conditions Cleared: {cleared_count}")
         result.append(f"Conditions Not Found: {not_found_count}")
-        result.append(
-            f"Remaining Conditions: {len([c for c in loan_file.current_conditions if c.status == 'pending'])}")
 
-        all_cleared = all(c.status == "cleared" for c in loan_file.current_conditions)
+        remaining = len([c for c in loan_file.current_conditions if c.status != "cleared"])
+        result.append(f"Remaining Conditions: {remaining}")
 
-        if all_cleared:
+        # Check if all cleared
+        if remaining == 0:
             result.append(f"\n✅ ALL CONDITIONS CLEARED")
             result.append(f"🔄 Ready to resubmit to underwriting for final approval")
 
             loan_file.update_status(
-                LoanStatus.CONDITIONS_SUBMITTED,
+                LoanStatus.UNDERWRITING_IN_PROGRESS,
                 "loan_processor",
-                "All underwriting conditions cleared"
+                "All conditions cleared - ready for final approval"
             )
-        else:
-            remaining = [c for c in loan_file.current_conditions if c.status == "pending"]
-            result.append(f"\n⚠️  PENDING CONDITIONS:")
-            for cond in remaining:
-                result.append(f"  - {cond.condition_id}: {cond.description}")
-
-        loan_file.add_audit_entry(
-            actor="loan_processor",
-            action="conditions_cleared",
-            details=f"Cleared {cleared_count} conditions"
-        )
 
         file_manager.save_loan_file(loan_file)
 
-    return "\n".join(result)
+        return "\n".join(result)
 
 
 # ... (previous code above) ...
@@ -1497,3 +1492,152 @@ async def submit_to_underwriting(loan_number: str) -> str:
         result.append(f"\n🔄 Next Step: Underwriter will review file and issue decision")
 
     return "\n".join(result)
+
+
+async def collect_documents(
+        loan_number: str,
+        document_types: List[str]
+) -> str:
+    """
+    Collect missing documents from borrower (simulates borrower upload)
+    """
+
+    async with file_manager.acquire_loan_lock(loan_number):
+        loan_file = file_manager.load_loan_file(loan_number)
+        if not loan_file:
+            return f"❌ ERROR: Loan file {loan_number} not found"
+
+        result = []
+        result.append(f"📥 COLLECTING DOCUMENTS FROM BORROWER")
+        result.append(f"Loan #{loan_number}")
+        result.append("=" * 60)
+        result.append(f"⏰ Simulating borrower document upload...")
+
+        # ✅ IMPROVED: More flexible matching
+        type_mapping = {
+            # Exact matches
+            "URLA": DocumentType.URLA,
+            "PAYSTUB": DocumentType.PAYSTUB,
+            "PAYSTUBS": DocumentType.PAYSTUB,
+            "W2": DocumentType.W2,
+            "W2S": DocumentType.W2,
+            "BANK_STATEMENT": DocumentType.BANK_STATEMENT,
+            "BANK_STATEMENTS": DocumentType.BANK_STATEMENT,
+            "PURCHASE_AGREEMENT": DocumentType.PURCHASE_AGREEMENT,
+
+            # ✅ NEW: Fuzzy matches for natural language
+            "UNIFORM RESIDENTIAL LOAN APPLICATION": DocumentType.URLA,
+            "LOAN APPLICATION": DocumentType.URLA,
+            "1003": DocumentType.URLA,
+
+            "PAY STUB": DocumentType.PAYSTUB,
+            "PAY STUBS": DocumentType.PAYSTUB,
+            "RECENT PAY STUBS": DocumentType.PAYSTUB,
+            "PAYSTUB (2 MONTHS)": DocumentType.PAYSTUB,
+
+            "W-2": DocumentType.W2,
+            "W-2 FORM": DocumentType.W2,
+            "W-2 FORMS": DocumentType.W2,
+            "W2 FORM": DocumentType.W2,
+            "W2 FORMS": DocumentType.W2,
+
+            "BANK STATEMENT": DocumentType.BANK_STATEMENT,
+            "BANK STATEMENTS": DocumentType.BANK_STATEMENT,
+            "BANK STATEMENTS (2 MONTHS)": DocumentType.BANK_STATEMENT,
+
+            "PURCHASE AGREEMENT": DocumentType.PURCHASE_AGREEMENT,
+            "SALES CONTRACT": DocumentType.PURCHASE_AGREEMENT,
+
+            "LOE": DocumentType.LOE,
+            "LETTER OF EXPLANATION": DocumentType.LOE,
+            "LETTER OF EXPLANATION FOR CREDIT INQUIRIES": DocumentType.LOE,
+            "EXPLANATION LETTER": DocumentType.LOE,
+
+            "VOA": DocumentType.VOA,
+            "ASSET VERIFICATION": DocumentType.VOA,
+            "SAVINGS ACCOUNT VERIFICATION": DocumentType.VOA,
+            "401K ACCOUNT VERIFICATION": DocumentType.VOA,
+            "CHECKING ACCOUNT VERIFICATION": DocumentType.VOA,
+            "BANK VERIFICATION": DocumentType.VOA,
+        }
+
+        collected_count = 0
+
+        for doc_type_str in document_types:
+            # Normalize: uppercase, strip extra spaces/punctuation
+            doc_type_normalized = doc_type_str.upper().strip()
+            doc_type_normalized = doc_type_normalized.replace("(", "").replace(")", "")
+            doc_type_normalized = doc_type_normalized.replace("  ", " ")
+
+            # Try exact match first
+            if doc_type_normalized in type_mapping:
+                doc_type = type_mapping[doc_type_normalized]
+
+                # Check if we already have this document type
+                has_doc = any(d.document_type == doc_type for d in loan_file.documents)
+                if has_doc:
+                    result.append(f"\n⚠️  Already have: {doc_type.value.upper()}")
+                    continue
+
+                # Create the document
+                new_doc = Document(
+                    document_id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
+                    document_type=doc_type,
+                    status=DocumentStatus.APPROVED,
+                    received_date=date.today(),
+                    reviewed_by="loan_processor",
+                    reviewed_date=datetime.now(),
+                    metadata={"source": "borrower_upload_simulation"}
+                )
+
+                loan_file.documents.append(new_doc)
+                collected_count += 1
+
+                result.append(f"\n✅ Received: {doc_type.value.upper()}")
+                result.append(f"   Document ID: {new_doc.document_id}")
+            else:
+                # ✅ NEW: Try substring matching
+                found = False
+                for key, doc_type in type_mapping.items():
+                    if key in doc_type_normalized or doc_type_normalized in key:
+                        # Check if we already have it
+                        has_doc = any(d.document_type == doc_type for d in loan_file.documents)
+                        if has_doc:
+                            result.append(f"\n⚠️  Already have: {doc_type.value.upper()}")
+                            found = True
+                            break
+
+                        # Create the document
+                        new_doc = Document(
+                            document_id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
+                            document_type=doc_type,
+                            status=DocumentStatus.APPROVED,
+                            received_date=date.today(),
+                            reviewed_by="loan_processor",
+                            reviewed_date=datetime.now(),
+                            metadata={"source": "borrower_upload_simulation"}
+                        )
+
+                        loan_file.documents.append(new_doc)
+                        collected_count += 1
+                        found = True
+
+                        result.append(f"\n✅ Received: {doc_type.value.upper()}")
+                        result.append(f"   Document ID: {new_doc.document_id}")
+                        break
+
+                if not found:
+                    result.append(f"\n⚠️  Unknown document type: {doc_type_str}")
+
+        result.append(f"\n{'=' * 60}")
+        result.append(f"Documents Collected: {collected_count}")
+
+        loan_file.add_audit_entry(
+            actor="loan_processor",
+            action="documents_collected",
+            details=f"Collected {collected_count} documents from borrower"
+        )
+
+        file_manager.save_loan_file(loan_file)
+
+        return "\n".join(result)

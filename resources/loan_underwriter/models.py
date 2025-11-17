@@ -51,6 +51,7 @@ class DocumentType(str, Enum):
     FLOOD_CERTIFICATION = "flood_certification"
     HOMEOWNERS_INSURANCE = "homeowners_insurance"
     PURCHASE_AGREEMENT = "purchase_agreement"
+    LOE = "loe"
 
 
 class DocumentStatus(str, Enum):
@@ -71,6 +72,7 @@ class ConditionType(str, Enum):
     VOD = "vod"  # Verification of Deposit
     VOM = "vom"  # Verification of Mortgage
     LOE = "loe"  # Letter of Explanation
+    VOA = "voa"  # Verification of Assets
     PAYSTUB = "paystub"
     BANK_STATEMENT = "bank_statement"
     TAX_RETURN = "tax_return"
@@ -83,6 +85,7 @@ class ConditionType(str, Enum):
     REPAIR_BID = "repair_bid"
     HOA_DOCS = "hoa_docs"
     OTHER = "other"
+    APPRAISAL = "appraisal"
 
 
 class ConditionSeverity(str, Enum):
