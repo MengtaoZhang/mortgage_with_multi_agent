@@ -785,3 +785,10 @@ def list_all_scenarios() -> str:
 ║                                                                    ║
 ╚════════════════════════════════════════════════════════════════════╝
 """
+
+# TODO:tests to get same results
+# TODO: diagrams show the flow of each scenario. workflow diagrams. branches and results.
+# TODO: what function/code do to demonstrate each scenario.
+# TODO: write a document what have done.
+# TODO: mongoDB as extra bonus. not priority
+# TODO: save requirements

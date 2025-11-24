@@ -8,7 +8,7 @@ import os
 
 from openai.types.beta import FunctionTool
 
-from resources.loan_underwriter.tools_loan_processor import collect_documents
+from src.loan_underwriter.tools_loan_processor import collect_documents
 # Import all tools
 from tools_loan_processor import (
     verify_loan_documents, validate_document_quality, order_credit_report,
