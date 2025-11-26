@@ -14,13 +14,13 @@ from typing import Dict, List
 import uuid
 import copy  # ← ADD THIS for run_automated_underwriting
 
-from models import (
+from src.loan_underwriter.models import (
     LoanFile, LoanStatus, Document, DocumentType, DocumentStatus,
     UnderwritingCondition, ConditionType, ConditionSeverity,
     Appraisal  # ← ADD THIS for order_appraisal
 )
-from file_manager import LoanFileManager  # ← This is where file_manager comes from
-from external_systems import (
+from src.loan_underwriter.file_manager import LoanFileManager  # ← This is where file_manager comes from
+from src.loan_underwriter.external_systems import (
     CreditBureauSimulator, AppraisalManagementSimulator,
     TitleCompanySimulator, FloodCertificationSimulator,
     EmploymentVerificationSimulator, IRSTranscriptSimulator,
@@ -500,7 +500,7 @@ async def calculate_loan_ratios(loan_number: str) -> str:
 
 
 # At the top of the file
-from file_manager import LoanFileManager
+from src.loan_underwriter.file_manager import LoanFileManager
 
 file_manager = LoanFileManager()
 

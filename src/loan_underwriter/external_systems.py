@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 import time
 
-from models import (
+from src.loan_underwriter.models import (
     CreditBureauResponse, CreditReport, CreditTradeline, CreditInquiry,
     AutomatedUnderwritingResponse, FloodCertificationResponse,
     ExternalSystemResponse, LoanFile, Document, DocumentType, DocumentStatus

@@ -3,28 +3,26 @@ Comprehensive test suite for Scenario 1 (Clean Approval) with assertions
 to validate each phase of the workflow.
 
 Run with:
-    pytest test_scenario_1_assertions.py -v
-    pytest test_scenario_1_assertions.py::TestScenario1Assertions::test_assertion_13_final_approval -v
+    cd /Users/mengtaozhang/Documents/PycharmProjects/mortgage_with_multi_agent/src/loan_underwriter
+    python -m pytest test/test_scenario_1_assertions.py -v
 """
 
 import pytest
 import asyncio
-import json
 from pathlib import Path
 from decimal import Decimal
 from datetime import datetime
-import sys
-import os
 
-# Add parent directory to path to import modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+# Import from the main codebase (conftest.py handles the path)
 from models import LoanStatus, DocumentStatus, DocumentType
 from file_manager import LoanFileManager
 from scenarios import create_scenario_clean_approval
-from main import run_workflow
 
 file_manager = LoanFileManager()
+
+
+# Configure pytest to use asyncio
+pytestmark = pytest.mark.asyncio
 
 
 class TestScenario1Assertions:
@@ -32,17 +30,6 @@ class TestScenario1Assertions:
     Comprehensive test suite for Scenario 1 (Clean Approval) with assertions
     to validate each phase of the workflow.
     """
-
-    @pytest.fixture
-    async def scenario_1_loan(self):
-        """Create Scenario 1 and return loan number"""
-        scenario_description = create_scenario_clean_approval()
-        loan_number = scenario_description.split("Loan Number: ")[1].split("\n")[0]
-        yield loan_number
-        # Cleanup after test
-        file_path = Path(f"../loan_files/active/{loan_number}.json")
-        if file_path.exists():
-            file_path.unlink()
 
     # ==================== PHASE 0: INITIALIZATION ====================
 
@@ -60,8 +47,8 @@ class TestScenario1Assertions:
         loan_number = scenario_description.split("Loan Number: ")[1].split("\n")[0]
 
         # Assert: File exists
-        file_path = Path(f"../loan_files/active/{loan_number}.json")
-        assert file_path.exists(), f"Loan file {loan_number}.json not created"
+        file_path = Path(f"./loan_files/active/{loan_number}.json")
+        assert file_path.exists(), f"Loan file {loan_number}.json not created at {file_path.absolute()}"
 
         # Assert: Valid JSON
         loan_file = file_manager.load_loan_file(loan_number)
@@ -92,7 +79,6 @@ class TestScenario1Assertions:
 
     # ==================== PHASE 1: DOCUMENT VERIFICATION ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_2_document_verification(self):
         """
         ASSERTION 2: Document verification marks all docs complete
@@ -134,11 +120,10 @@ class TestScenario1Assertions:
         print("✅ ASSERTION 2 PASSED: Document verification complete")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
     # ==================== PHASE 2: CREDIT REPORT ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_3_credit_report_retrieval(self):
         """
         ASSERTION 3: Credit report retrieved with expected score
@@ -173,11 +158,10 @@ class TestScenario1Assertions:
         print("✅ ASSERTION 3 PASSED: Credit report retrieved correctly")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
     # ==================== PHASE 3: FLOOD CERTIFICATION ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_4_flood_certification(self):
         """
         ASSERTION 4: Flood certification determines low risk
@@ -207,11 +191,10 @@ class TestScenario1Assertions:
         print("✅ ASSERTION 4 PASSED: Flood certification correct")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
     # ==================== PHASE 4: EMPLOYMENT VERIFICATION ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_5_employment_verification(self):
         """
         ASSERTION 5: Employment verified with stable history
@@ -241,11 +224,10 @@ class TestScenario1Assertions:
         print("✅ ASSERTION 5 PASSED: Employment verification successful")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
     # ==================== PHASE 5: FINANCIAL RATIOS ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_6_financial_ratios(self):
         """
         ASSERTION 6: Financial ratios calculated correctly
@@ -285,11 +267,10 @@ class TestScenario1Assertions:
         print("✅ ASSERTION 6 PASSED: Financial ratios correct")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
     # ==================== PHASE 6: SUBMIT TO UNDERWRITING ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_7_submit_to_underwriting(self):
         """
         ASSERTION 7: Loan successfully submitted to underwriting
@@ -332,11 +313,10 @@ class TestScenario1Assertions:
         print("✅ ASSERTION 7 PASSED: Submitted to underwriting")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
     # ==================== CONCURRENCY VALIDATION ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_15_concurrent_execution(self):
         """
         ASSERTION 15: Concurrent tasks execute in parallel
@@ -378,11 +358,10 @@ class TestScenario1Assertions:
         print(f"✅ ASSERTION 15 PASSED: Concurrent execution in {duration:.1f}s")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
     # ==================== FILE INTEGRITY VALIDATION ====================
 
-    @pytest.mark.asyncio
     async def test_assertion_16_file_integrity(self):
         """
         ASSERTION 16: File operations maintain data integrity
@@ -419,7 +398,7 @@ class TestScenario1Assertions:
         print("✅ ASSERTION 16 PASSED: File integrity maintained")
 
         # Cleanup
-        Path(f"../loan_files/active/{loan_number}.json").unlink()
+        Path(f"./loan_files/active/{loan_number}.json").unlink()
 
 
 # ==================== RUN ALL ASSERTIONS ====================

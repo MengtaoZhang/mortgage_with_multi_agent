@@ -14,7 +14,7 @@ import asyncio
 import threading
 from contextlib import asynccontextmanager
 
-from models import LoanFile
+from src.loan_underwriter.models import LoanFile
 
 
 class LoanFileManager:
