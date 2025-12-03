@@ -1,0 +1,380 @@
+{
+  "loan_info": {
+    "loan_number": "LN-B11075",
+    "loan_amount": "320000",
+    "purchase_price": "400000",
+    "down_payment": "80000",
+    "interest_rate": "6.5",
+    "loan_term_months": 360,
+    "loan_type": "conventional",
+    "loan_purpose": "purchase",
+    "lender_name": "Premium Lender",
+    "loan_officer": "Jane Doe",
+    "application_date": "2025-11-30",
+    "lock_expiration_date": null
+  },
+  "status": "underwriting_initial_review",
+  "borrowers": [
+    {
+      "borrower_id": "B001",
+      "first_name": "John",
+      "middle_name": null,
+      "last_name": "Smith",
+      "ssn": "123-45-6789",
+      "date_of_birth": "1985-05-15",
+      "email": "john.smith@email.com",
+      "phone": "555-0100",
+      "current_address": {
+        "street": "123 Main Street",
+        "city": "Springfield",
+        "state": "IL",
+        "zip_code": "62701",
+        "country": "USA"
+      },
+      "previous_addresses": [],
+      "employment": [
+        {
+          "employer_name": "Tech Corp",
+          "employer_phone": "555-0200",
+          "employment_type": "w2_salary",
+          "job_title": "Software Engineer",
+          "start_date": "2019-01-01",
+          "end_date": null,
+          "is_current": true,
+          "monthly_income": "8500",
+          "years_in_profession": 5.0,
+          "verified": true,
+          "verification_date": "2025-11-30T23:35:58.894448",
+          "verification_method": "VOE - Employer Direct Contact"
+        }
+      ],
+      "income": [
+        {
+          "income_type": "base_salary",
+          "monthly_amount": "8500",
+          "is_stable": true,
+          "documentation": [],
+          "notes": null
+        }
+      ],
+      "assets": [
+        {
+          "asset_type": "checking",
+          "institution_name": "First National Bank",
+          "account_number": "****1234",
+          "balance": "25000",
+          "statement_date": "2025-11-25",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        },
+        {
+          "asset_type": "savings",
+          "institution_name": "First National Bank",
+          "account_number": "****5678",
+          "balance": "50000",
+          "statement_date": "2025-11-25",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        },
+        {
+          "asset_type": "401k",
+          "institution_name": "Fidelity",
+          "account_number": "****9012",
+          "balance": "120000",
+          "statement_date": "2025-10-31",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        }
+      ],
+      "credit_report": null,
+      "is_first_time_homebuyer": false,
+      "citizenship_status": "us_citizen",
+      "marital_status": "married"
+    }
+  ],
+  "co_borrowers": [],
+  "property_info": {
+    "property_address": {
+      "street": "456 Oak Avenue",
+      "city": "Springfield",
+      "state": "IL",
+      "zip_code": "62702",
+      "country": "USA"
+    },
+    "property_type": "single_family",
+    "occupancy_type": "primary_residence",
+    "year_built": 2015,
+    "square_footage": 2200,
+    "number_of_units": 1,
+    "hoa": false,
+    "hoa_fees": null,
+    "flood_zone": "X",
+    "flood_insurance_required": false
+  },
+  "appraisal": {
+    "appraisal_id": "APR-313248",
+    "ordered_date": "2025-11-30T23:36:00.631700",
+    "completed_date": null,
+    "appraiser_name": null,
+    "appraiser_license": null,
+    "appraised_value": null,
+    "as_is_value": null,
+    "condition": null,
+    "comparable_sales": [],
+    "issues": [],
+    "repairs_required": [],
+    "estimated_repair_cost": null,
+    "status": "ordered"
+  },
+  "title_report": null,
+  "financial_metrics": {
+    "ltv_ratio": null,
+    "cltv_ratio": null,
+    "dti_ratio": null,
+    "front_end_ratio": null,
+    "monthly_housing_payment": null,
+    "total_monthly_debt": null,
+    "monthly_income": null,
+    "reserves_months": null,
+    "total_assets": null,
+    "cash_to_close": null,
+    "pmi_required": false,
+    "pmi_amount": null
+  },
+  "documents": [
+    {
+      "document_id": "DOC-369DEED9",
+      "document_type": "urla",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-8EDC42E5",
+      "document_type": "paystub",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-481CB826",
+      "document_type": "w2",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-5F31B231",
+      "document_type": "bank_statement",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-50721312",
+      "document_type": "purchase_agreement",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-62A62215",
+      "document_type": "flood_certification",
+      "status": "approved",
+      "file_name": null,
+      "file_path": null,
+      "received_date": "2025-11-30T23:35:57.131849",
+      "reviewed_date": "2025-11-30T23:35:57.131851",
+      "reviewed_by": "loan_processor",
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {
+        "flood_zone": "X",
+        "insurance_required": false,
+        "future_risk_score": 2
+      }
+    },
+    {
+      "document_id": "DOC-D4362E04",
+      "document_type": "employment_verification",
+      "status": "approved",
+      "file_name": null,
+      "file_path": null,
+      "received_date": "2025-11-30T23:35:58.894510",
+      "reviewed_date": "2025-11-30T23:35:58.894512",
+      "reviewed_by": "loan_processor",
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {
+        "employer": "Tech Corp",
+        "verified_income": 8245.31,
+        "hire_date": "2021-05-24"
+      }
+    },
+    {
+      "document_id": "DOC-329DE093",
+      "document_type": "appraisal",
+      "status": "requested",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {
+        "order_id": "APR-313248",
+        "estimated_completion": "2025-12-07"
+      }
+    }
+  ],
+  "underwriting_decisions": [
+    {
+      "decision_id": "DEC-173B2CF8",
+      "decision_date": "2025-11-30T23:36:02.870593",
+      "underwriter_name": "automated_underwriting_system",
+      "decision_type": "automated_findings",
+      "decision_reason": "DU Recommendation: approve",
+      "conditions": [],
+      "notes": null,
+      "automated_findings": {
+        "recommendation": "approve",
+        "findings": [],
+        "required_documents": [],
+        "llpa": 0.0,
+        "reserves_required": 2
+      },
+      "manual_review_notes": null
+    }
+  ],
+  "current_conditions": [],
+  "audit_trail": [
+    {
+      "timestamp": "2025-11-30T23:35:56.715070",
+      "actor": "loan_processor",
+      "action": "credit_order_failed",
+      "details": "Maintenance: Credit bureau under maintenance (2AM-4AM EST)",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-30T23:35:56.731971",
+      "actor": "loan_processor",
+      "action": "status_change",
+      "details": "Missing required documents",
+      "status_before": "application_received",
+      "status_after": "documents_collecting",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-30T23:35:57.131881",
+      "actor": "loan_processor",
+      "action": "flood_cert_ordered",
+      "details": "Zone: X, Insurance Required: False",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-30T23:35:58.894551",
+      "actor": "loan_processor",
+      "action": "employment_verified",
+      "details": "Employer: Tech Corp, Income: $8245.31",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-30T23:36:00.631839",
+      "actor": "loan_processor",
+      "action": "status_change",
+      "details": "Appraisal ordered - Order ID: APR-313248",
+      "status_before": "documents_collecting",
+      "status_after": "appraisal_ordered",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-30T23:36:02.870636",
+      "actor": "underwriter_agent",
+      "action": "status_change",
+      "details": "Automated underwriting: approve",
+      "status_before": "appraisal_ordered",
+      "status_after": "underwriting_initial_review",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-30T23:36:02.870650",
+      "actor": "underwriter_agent",
+      "action": "automated_underwriting",
+      "details": "DU Recommendation: approve",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2025-11-30T23:36:02.885926",
+      "actor": "underwriter_agent",
+      "action": "income_review",
+      "details": "Total income: $8500, Employment months: 82",
+      "status_before": null,
+      "status_after": null,
+      "metadata": {}
+    }
+  ],
+  "created_date": "2025-11-30T23:35:52.870130",
+  "last_updated": "2025-11-30T23:36:02.885943",
+  "processor_name": null,
+  "underwriter_name": null,
+  "notes": null,
+  "flags": []
+}

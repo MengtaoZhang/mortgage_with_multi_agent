@@ -11,7 +11,7 @@ from autogen_agentchat.ui import Console
 from dotenv import load_dotenv
 
 from agents import orchestrator_agent, loan_processor_agent, underwriter_agent
-from file_manager import LoanFileManager
+from file_manager import file_manager  # Import singleton instance
 from scenarios import (
     create_scenario_clean_approval,
     create_scenario_conditional_approval,
@@ -25,8 +25,6 @@ load_dotenv()
 
 if not os.environ.get("OPENAI_API_KEY"):
     raise ValueError("OPENAI_API_KEY not found in environment variables")
-
-file_manager = LoanFileManager()
 
 termination = HandoffTermination(target="user") | TextMentionTermination("TERMINATE")
 

@@ -1,0 +1,229 @@
+{
+  "loan_info": {
+    "loan_number": "LN-89729D",
+    "loan_amount": "320000",
+    "purchase_price": "400000",
+    "down_payment": "80000",
+    "interest_rate": "6.5",
+    "loan_term_months": 360,
+    "loan_type": "conventional",
+    "loan_purpose": "purchase",
+    "lender_name": "Premium Lender",
+    "loan_officer": "Jane Doe",
+    "application_date": "2025-11-27",
+    "lock_expiration_date": null
+  },
+  "status": "documents_collecting",
+  "borrowers": [
+    {
+      "borrower_id": "B001",
+      "first_name": "John",
+      "middle_name": null,
+      "last_name": "Smith",
+      "ssn": "123-45-6789",
+      "date_of_birth": "1985-05-15",
+      "email": "john.smith@email.com",
+      "phone": "555-0100",
+      "current_address": {
+        "street": "123 Main Street",
+        "city": "Springfield",
+        "state": "IL",
+        "zip_code": "62701",
+        "country": "USA"
+      },
+      "previous_addresses": [],
+      "employment": [
+        {
+          "employer_name": "Tech Corp",
+          "employer_phone": "555-0200",
+          "employment_type": "w2_salary",
+          "job_title": "Software Engineer",
+          "start_date": "2019-01-01",
+          "end_date": null,
+          "is_current": true,
+          "monthly_income": "8500",
+          "years_in_profession": 5.0,
+          "verified": false,
+          "verification_date": null,
+          "verification_method": null
+        }
+      ],
+      "income": [
+        {
+          "income_type": "base_salary",
+          "monthly_amount": "8500",
+          "is_stable": true,
+          "documentation": [],
+          "notes": null
+        }
+      ],
+      "assets": [
+        {
+          "asset_type": "checking",
+          "institution_name": "First National Bank",
+          "account_number": "****1234",
+          "balance": "25000",
+          "statement_date": "2025-11-22",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        },
+        {
+          "asset_type": "savings",
+          "institution_name": "First National Bank",
+          "account_number": "****5678",
+          "balance": "50000",
+          "statement_date": "2025-11-22",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        },
+        {
+          "asset_type": "401k",
+          "institution_name": "Fidelity",
+          "account_number": "****9012",
+          "balance": "120000",
+          "statement_date": "2025-10-28",
+          "verified": false,
+          "large_deposits": [],
+          "seasoning_issues": []
+        }
+      ],
+      "credit_report": null,
+      "is_first_time_homebuyer": false,
+      "citizenship_status": "us_citizen",
+      "marital_status": "married"
+    }
+  ],
+  "co_borrowers": [],
+  "property_info": {
+    "property_address": {
+      "street": "456 Oak Avenue",
+      "city": "Springfield",
+      "state": "IL",
+      "zip_code": "62702",
+      "country": "USA"
+    },
+    "property_type": "single_family",
+    "occupancy_type": "primary_residence",
+    "year_built": 2015,
+    "square_footage": 2200,
+    "number_of_units": 1,
+    "hoa": false,
+    "hoa_fees": null,
+    "flood_zone": null,
+    "flood_insurance_required": false
+  },
+  "appraisal": null,
+  "title_report": null,
+  "financial_metrics": {
+    "ltv_ratio": null,
+    "cltv_ratio": null,
+    "dti_ratio": null,
+    "front_end_ratio": null,
+    "monthly_housing_payment": null,
+    "total_monthly_debt": null,
+    "monthly_income": null,
+    "reserves_months": null,
+    "total_assets": null,
+    "cash_to_close": null,
+    "pmi_required": false,
+    "pmi_amount": null
+  },
+  "documents": [
+    {
+      "document_id": "DOC-86FFF3BF",
+      "document_type": "urla",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-5EFFBE46",
+      "document_type": "paystub",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-F962CCFA",
+      "document_type": "w2",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-1F648186",
+      "document_type": "bank_statement",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    },
+    {
+      "document_id": "DOC-8ECAEDEA",
+      "document_type": "purchase_agreement",
+      "status": "required",
+      "file_name": null,
+      "file_path": null,
+      "received_date": null,
+      "reviewed_date": null,
+      "reviewed_by": null,
+      "expiration_date": null,
+      "pages": null,
+      "issues": [],
+      "notes": null,
+      "metadata": {}
+    }
+  ],
+  "underwriting_decisions": [],
+  "current_conditions": [],
+  "audit_trail": [
+    {
+      "timestamp": "2025-11-27T10:20:05.537790",
+      "actor": "loan_processor",
+      "action": "status_change",
+      "details": "Missing required documents",
+      "status_before": "application_received",
+      "status_after": "documents_collecting",
+      "metadata": {}
+    }
+  ],
+  "created_date": "2025-11-27T10:20:05.535594",
+  "last_updated": "2025-11-27T10:20:05.537797",
+  "processor_name": null,
+  "underwriter_name": null,
+  "notes": null,
+  "flags": []
+}

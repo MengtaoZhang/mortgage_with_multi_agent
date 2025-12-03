@@ -6,6 +6,8 @@ import json
 import os
 import gzip
 import shutil
+import time
+import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict
@@ -135,6 +137,11 @@ class LoanFileManager:
             json.dump(loan_data, f, indent=2, default=self._custom_encoder)
 
         self._write_counts[loan_number] = self._write_counts.get(loan_number, 0) + 1
+        elapsed = time.perf_counter()
+        print(
+            f"[WRITE] t+{elapsed:.3f}s loan={loan_number} "
+            f"count={self._write_counts[loan_number]} path={file_path}"
+        )
 
         self._check_file_size(file_path)
 
@@ -184,6 +191,10 @@ class LoanFileManager:
 
         return stats
 
+    def get_write_count(self, loan_number: str) -> int:
+        """Get the total number of writes for a specific loan"""
+        return self._write_counts.get(loan_number, 0)
+
     def print_storage_stats(self) -> None:
         stats = self.get_storage_stats()
 
@@ -205,3 +216,25 @@ class LoanFileManager:
                 print(f"  {loan_num}: {count} writes")
 
         print("="*60 + "\n")
+
+
+# ========== SINGLETON INSTANCE ==========
+# Create a single shared instance to ensure consistent write tracking
+# across all modules. Import this instance, not the class!
+_file_manager_instance = None
+
+def get_file_manager() -> LoanFileManager:
+    """Get the singleton file manager instance"""
+    global _file_manager_instance
+    if _file_manager_instance is None:
+        _file_manager_instance = LoanFileManager()
+    return _file_manager_instance
+
+# Export the singleton instance
+file_manager = get_file_manager()
+
+# Map alternative module paths to the same instance to avoid duplicate singletons
+sys.modules.setdefault("src.loan_underwriter.file_manager", sys.modules[__name__])
+sys.modules.setdefault("loan_underwriter.file_manager", sys.modules[__name__])
+
+__all__ = ['LoanFileManager', 'file_manager', 'get_file_manager']

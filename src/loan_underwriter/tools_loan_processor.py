@@ -19,7 +19,7 @@ from src.loan_underwriter.models import (
     UnderwritingCondition, ConditionType, ConditionSeverity,
     Appraisal  # ← ADD THIS for order_appraisal
 )
-from src.loan_underwriter.file_manager import LoanFileManager  # ← This is where file_manager comes from
+from src.loan_underwriter.file_manager import file_manager  # ← Import singleton instance
 from src.loan_underwriter.external_systems import (
     CreditBureauSimulator, AppraisalManagementSimulator,
     TitleCompanySimulator, FloodCertificationSimulator,
@@ -28,11 +28,12 @@ from src.loan_underwriter.external_systems import (
     InvalidDataException, InsufficientCreditHistoryException,
     ExternalSystemException
 )
-file_manager = LoanFileManager()  # ← This is the file_manager used in all functions
 
 
 async def verify_loan_documents(loan_number: str) -> str:
     """Verify all required loan documents - CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] verify_loan_documents({loan_number})")
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -173,6 +174,8 @@ async def validate_document_quality(
 async def order_credit_report(loan_number: str, max_retries: int = 2) -> str:
     """Order credit report - TRUE CONCURRENT SAFE"""
 
+    print(f"    🔧 [TOOL CALLED] order_credit_report({loan_number})")
+
     # ========== PHASE 1: Load data (LOCKED) ==========
     for attempt in range(1, max_retries + 1):
         async with file_manager.acquire_loan_lock(loan_number):
@@ -278,6 +281,7 @@ async def order_credit_report(loan_number: str, max_retries: int = 2) -> str:
 
             # Save file
             file_manager.save_loan_file(loan_file)
+            print(f"    [WRITE-COUNT] credit loan={loan_number} writes={file_manager.get_write_count(loan_number)}")
             result.append(f"\n✅ Credit report added to loan file")
         # Lock released
 
@@ -328,10 +332,27 @@ async def order_credit_report(loan_number: str, max_retries: int = 2) -> str:
                 )
                 file_manager.save_loan_file(loan_file)
 
+    except Exception as e:
+        # Catch-all to surface unexpected errors
+        err = f"Unexpected error pulling credit: {e}"
+        print(f"    [CREDIT-ERROR] {err}")
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.add_audit_entry(
+                    actor="loan_processor",
+                    action="credit_order_failed",
+                    details=err
+                )
+                file_manager.save_loan_file(loan_file)
+        result.append(f"\n❌ ERROR: {err}")
+
     return "\n".join(result)
 
 async def calculate_loan_ratios(loan_number: str) -> str:
     """Calculate financial ratios - CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] calculate_loan_ratios({loan_number})")
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -498,13 +519,6 @@ async def calculate_loan_ratios(loan_number: str) -> str:
 
     return "\n".join(result)
 
-
-# At the top of the file
-from src.loan_underwriter.file_manager import LoanFileManager
-
-file_manager = LoanFileManager()
-
-
 async def order_appraisal(loan_number: str) -> str:  # ← NOT @staticmethod, NOT in a class
     """Order property appraisal - TRUE CONCURRENT SAFE"""
 
@@ -589,6 +603,7 @@ async def order_appraisal(loan_number: str) -> str:  # ← NOT @staticmethod, NO
             )
 
             file_manager.save_loan_file(loan_file)
+            print(f"    [WRITE-COUNT] appraisal loan={loan_number} writes={file_manager.get_write_count(loan_number)}")
             result.append(f"\n✅ Appraisal record added to loan file")
 
     except ExternalSystemException as e:
@@ -604,6 +619,20 @@ async def order_appraisal(loan_number: str) -> str:  # ← NOT @staticmethod, NO
                     details=str(e)
                 )
                 file_manager.save_loan_file(loan_file)
+
+    except Exception as e:
+        err = f"Unexpected appraisal error: {e}"
+        print(f"    [APPRAISAL-ERROR] {err}")
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.add_audit_entry(
+                    actor="loan_processor",
+                    action="appraisal_order_failed",
+                    details=err
+                )
+                file_manager.save_loan_file(loan_file)
+        result.append(f"\n❌ ERROR: {err}")
 
     return "\n".join(result)
 
@@ -716,6 +745,8 @@ async def receive_appraisal(loan_number: str) -> str:
 async def order_flood_certification(loan_number: str) -> str:
     """Order flood certification - TRUE CONCURRENT SAFE"""
 
+    print(f"    🔧 [TOOL CALLED] order_flood_certification({loan_number})")
+
     # ========== PHASE 1: Load data (LOCKED) ==========
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -820,6 +851,8 @@ async def order_flood_certification(loan_number: str) -> str:
 
 async def verify_employment(loan_number: str, employment_index: int = 0) -> str:
     """Verify borrower employment - TRUE CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] verify_employment({loan_number})")
 
     # ========== PHASE 1: Load data (LOCKED) ==========
     async with file_manager.acquire_loan_lock(loan_number):
@@ -1107,6 +1140,8 @@ async def clear_underwriting_conditions(
 
 async def order_appraisal(loan_number: str) -> str:
     """Order property appraisal - CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] order_appraisal({loan_number})")
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)

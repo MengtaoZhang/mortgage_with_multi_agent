@@ -9,10 +9,8 @@ from models import (
     PropertyInfo, PropertyType, OccupancyType, Address, EmploymentType,
     FinancialMetrics
 )
-from file_manager import LoanFileManager
+from file_manager import file_manager  # Import singleton instance
 import uuid
-
-file_manager = LoanFileManager()
 
 
 def create_scenario_clean_approval() -> str:

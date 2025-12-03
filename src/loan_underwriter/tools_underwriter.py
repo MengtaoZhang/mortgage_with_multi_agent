@@ -13,17 +13,16 @@ from models import (
     LoanFile, LoanStatus, UnderwritingCondition, UnderwritingDecision,
     ConditionType, ConditionSeverity, DocumentType, DocumentStatus
 )
-from file_manager import LoanFileManager  # ← This is where file_manager comes from
+from file_manager import file_manager  # ← Import singleton instance
 from external_systems import (
     AutomatedUnderwritingSimulator, SystemTimeoutException,
     ExternalSystemException
 )
 
-# Create global file_manager instance
-file_manager = LoanFileManager()  # ← This is the file_manager used in all functions
-
 async def run_automated_underwriting(loan_number: str) -> str:
     """Run automated underwriting - TRUE CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] run_automated_underwriting({loan_number})")
 
     # ========== PHASE 1: Load data (LOCKED) ==========
     async with file_manager.acquire_loan_lock(loan_number):
@@ -134,6 +133,7 @@ async def run_automated_underwriting(loan_number: str) -> str:
             )
 
             file_manager.save_loan_file(loan_file)
+            print(f"    [WRITE-COUNT] AU loan={loan_number} writes={file_manager.get_write_count(loan_number)}")
             result.append(f"\n✅ Automated underwriting results recorded")
 
     except SystemTimeoutException as e:
@@ -150,11 +150,27 @@ async def run_automated_underwriting(loan_number: str) -> str:
                 )
                 file_manager.save_loan_file(loan_file)
 
+    except Exception as e:
+        err = f"Unexpected AUS error: {e}"
+        print(f"    [AUS-ERROR] {err}")
+        async with file_manager.acquire_loan_lock(loan_number):
+            loan_file = file_manager.load_loan_file(loan_number)
+            if loan_file:
+                loan_file.add_audit_entry(
+                    actor="underwriter_agent",
+                    action="automated_underwriting_failed",
+                    details=err
+                )
+                file_manager.save_loan_file(loan_file)
+        result.append(f"\n❌ ERROR: {err}")
+
     return "\n".join(result)
 
 
 async def review_credit_profile(loan_number: str) -> str:
     """Review credit profile - CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] review_credit_profile({loan_number})")
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -267,6 +283,8 @@ async def review_credit_profile(loan_number: str) -> str:
 async def review_income_employment(loan_number: str) -> str:
     """Review income and employment - CONCURRENT SAFE"""
 
+    print(f"    🔧 [TOOL CALLED] review_income_employment({loan_number})")
+
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
         if not loan_file:
@@ -370,6 +388,8 @@ async def review_income_employment(loan_number: str) -> str:
 
 async def review_assets_reserves(loan_number: str) -> str:
     """Review assets and reserves - CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] review_assets_reserves({loan_number})")
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -496,6 +516,8 @@ async def review_assets_reserves(loan_number: str) -> str:
 
 async def review_property_appraisal(loan_number: str) -> str:
     """Review property appraisal - CONCURRENT SAFE"""
+
+    print(f"    🔧 [TOOL CALLED] review_property_appraisal({loan_number})")
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -691,8 +713,10 @@ async def issue_underwriting_conditions(
 
         return "\n".join(result)
 
-async def issue_final_approval(loan_number: str, approval_notes: str) -> str:
-    """Issue Clear to Close - CONCURRENT SAFE"""
+async def issue_final_approval(loan_number: str, approval_notes: str = "Automated approval by decision_maker") -> str:
+    """Issue Clear to Close - CONCURRENT SAFE. approval_notes optional for tool callers."""
+
+    print(f"    🔧 [TOOL CALLED] issue_final_approval({loan_number})")
 
     async with file_manager.acquire_loan_lock(loan_number):
         loan_file = file_manager.load_loan_file(loan_number)
@@ -730,6 +754,7 @@ async def issue_final_approval(loan_number: str, approval_notes: str) -> str:
         )
 
         file_manager.save_loan_file(loan_file)
+        print(f"    [WRITE-COUNT] FINAL APPROVAL loan={loan_number} writes={file_manager.get_write_count(loan_number)}")
 
         result.append(f"\n🎉 CLEAR TO CLOSE")
         result.append(f"Decision ID: {decision.decision_id}")

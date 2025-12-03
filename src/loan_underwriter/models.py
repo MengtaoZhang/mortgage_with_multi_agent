@@ -2,7 +2,7 @@
 Pydantic models for mortgage loan underwriting system
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict
 from typing import List, Optional, Dict, Literal, Any
 from datetime import datetime, date
 from enum import Enum
@@ -128,6 +128,8 @@ class OccupancyType(str, Enum):
 
 class Document(BaseModel):
     """Document tracking model"""
+    model_config = ConfigDict(use_enum_values=True)
+
     document_id: str = Field(..., description="Unique document identifier")
     document_type: DocumentType
     status: DocumentStatus = DocumentStatus.REQUIRED
@@ -156,6 +158,8 @@ class Address(BaseModel):
 
 class Employment(BaseModel):
     """Employment information"""
+    model_config = ConfigDict(use_enum_values=True)
+
     employer_name: str
     employer_phone: Optional[str] = None
     employment_type: EmploymentType
@@ -250,6 +254,8 @@ class Borrower(BaseModel):
 
 class PropertyInfo(BaseModel):
     """Property information"""
+    model_config = ConfigDict(use_enum_values=True)
+
     property_address: Address
     property_type: PropertyType
     occupancy_type: OccupancyType
@@ -327,6 +333,8 @@ class FinancialMetrics(BaseModel):
 
 class UnderwritingCondition(BaseModel):
     """Underwriting condition"""
+    model_config = ConfigDict(use_enum_values=True)
+
     condition_id: str
     condition_type: ConditionType
     severity: ConditionSeverity
@@ -370,6 +378,8 @@ class AuditTrail(BaseModel):
 
 class LoanFile(BaseModel):
     """Complete loan file"""
+    model_config = ConfigDict(use_enum_values=True)
+
     # Basic info
     loan_info: LoanInfo
     status: LoanStatus = LoanStatus.APPLICATION_RECEIVED
@@ -421,14 +431,18 @@ class LoanFile(BaseModel):
 
     def update_status(self, new_status: LoanStatus, actor: str, reason: str):
         """Update loan status with audit trail"""
-        old_status = self.status.value
-        self.status = new_status
+        # Handle cases where status is already a raw string because of use_enum_values=True
+        old_status = self.status.value if hasattr(self.status, "value") else self.status
+        new_status_value = new_status.value if hasattr(new_status, "value") else new_status
+
+        # Store as raw value (consistent with use_enum_values=True)
+        self.status = new_status_value
         self.add_audit_entry(
             actor=actor,
             action="status_change",
             details=reason,
             status_before=old_status,
-            status_after=new_status.value
+            status_after=new_status_value
         )
 
 
