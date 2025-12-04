@@ -1135,9 +1135,6 @@ async def clear_underwriting_conditions(
 
         return "\n".join(result)
 
-
-# ... (previous code above) ...
-
 async def order_appraisal(loan_number: str) -> str:
     """Order property appraisal - CONCURRENT SAFE"""
 
